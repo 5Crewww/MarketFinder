@@ -14,11 +14,11 @@ public class UserEntity {
     @Column (name = "id_user")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @JoinColumn (name = "Nome_user")
+    @Column (name = "Nome_user")
     private String nome;
-    @JoinColumn (name = "email_user")
+    @Column (name = "email_user")
     private String email;
-    @JoinColumn (name = "senha_user")
+    @Column (name = "senha_user")
     private String senha;
 
 }

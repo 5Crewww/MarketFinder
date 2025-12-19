@@ -92,7 +92,7 @@ const Lojista = ({ user, onLogout }) => {
     // --- AÇÕES CRUD ---
     const handleAddCorredor = async (e) => {
         e.preventDefault();
-        await apiService.createCorredor({ name: novoCorredor });
+        await apiService.createCorredor({ nome: novoCorredor });
         setNovoCorredor(''); carregarTudo();
         showNotify('success', 'Corredor criado!');
     };
@@ -102,17 +102,32 @@ const Lojista = ({ user, onLogout }) => {
         try {
             const { nome, descricao, preco, idPrateleira } = novoProduto;
             const shelfObj = prateleiras.find(p => p.id == idPrateleira);
-            // IMPORTANTE: Envia shelfId e aisleId para o backend salvar a localização
-            await apiService.createProduct({
-                nome, descricao, 
+            
+            // Debug: ver o que estamos a enviar no browser
+            console.log("A enviar Produto:", {
+                nome, 
+                descricao, 
                 preco: parseFloat(preco),
-                shelfId: parseInt(idPrateleira),
-                aisleId: shelfObj ? shelfObj.corredorId : null
+                idPrateleira: parseInt(idPrateleira),
+                idCorredor: shelfObj ? (shelfObj.idCorredor || shelfObj.corredorId) : null
             });
+
+            await apiService.createProduct({
+                nome, 
+                descricao, 
+                preco: parseFloat(preco),
+                // CORREÇÃO FINAL: Usar os nomes exatos do Java
+                idPrateleira: parseInt(idPrateleira), 
+                idCorredor: shelfObj ? (shelfObj.idCorredor || shelfObj.corredorId) : null 
+            });
+
             setNovoProduto({ nome: '', descricao: '', preco: '', idPrateleira: '' });
             carregarTudo();
-            showNotify('success', 'Produto criado!');
-        } catch(e) { showNotify('error', 'Erro ao criar produto.'); }
+            showNotify('success', 'Produto criado com localização!');
+        } catch(e) { 
+            console.error(e);
+            showNotify('error', 'Erro ao criar produto.'); 
+        }
     };
 
     const handleSalvarPrateleiraVisual = async (e) => {

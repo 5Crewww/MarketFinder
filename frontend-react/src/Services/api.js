@@ -32,23 +32,23 @@ export const apiService = {
     // Login: O UserController atual não tem endpoint /Login. 
     // Usamos GetByName para simular (como no auth.js) ou ajusta se criares o endpoint.
     getUserByName: (nome) => 
-        fetch(`${API_URL}/users/UserGet?nome=${encodeURIComponent(nome)}`)
+        fetch(`${API_URL}/User/UserGet?nome=${encodeURIComponent(nome)}`)
             .then(handleResponse),
 
     register: (userData) => 
-        fetch(`${API_URL}/users/UserPost`, {
+        fetch(`${API_URL}/User/UserPost`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(userData),
         }).then(handleResponse),
 
     getAllUsers: () => 
-        fetch(`${API_URL}/users/GetAllUsers`) 
+        fetch(`${API_URL}/User/GetAllUsers`) 
             .then(handleResponse),
 
     // Backend: @DeleteMapping("/UserDel/{id}") -> Usa PathVariable, não ?id=
     deleteUser: (id) => 
-        fetch(`${API_URL}/users/UserDel/${id}`, {
+        fetch(`${API_URL}/User/UserDel/${id}`, {
             method: 'DELETE',
         }).then(handleResponse),
 
