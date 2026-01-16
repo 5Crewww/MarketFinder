@@ -62,7 +62,7 @@ public class CorredorController {
     }
 
     @PostMapping("/CPost")
-    public ResponseEntity<CorredorResponde> CreateCorredor (@RequestBody CorredorRequest request){
+    public ResponseEntity<CorredorResponde> createCorredor (@RequestBody CorredorRequest request){
         if (request == null || request.getNome() == null) return ResponseEntity.badRequest().build();
 
         CorredorModel model = new CorredorModel();
@@ -84,7 +84,7 @@ public class CorredorController {
     }
 
     @PutMapping("/CUpdt")
-    public ResponseEntity<CorredorResponde> UpdateCorredor (@RequestBody CorredorRequest request){
+    public ResponseEntity<CorredorResponde> updateCorredor (@RequestBody CorredorRequest request){
         if (request == null || request.getId() == null) return ResponseEntity.badRequest().build();
 
         Optional<CorredorEntity> opt = corredorRepository.findById(request.getId());
@@ -108,7 +108,7 @@ public class CorredorController {
     }
 
     @DeleteMapping("/CDel/{id}")
-    public ResponseEntity<Void> DeleteCorredor (@PathVariable Long id){
+    public ResponseEntity<Void> deleteCorredor (@PathVariable Long id){
         if (!corredorRepository.existsById(id)) return ResponseEntity.notFound().build();
 
         List<PrateleiraEntity> shelves = prateleiraRepository.findByIdCorredor(id);
@@ -121,7 +121,7 @@ public class CorredorController {
     }
 
     @GetMapping("/CGetByStore/{storeId}")
-    public ResponseEntity<List<CorredorResponde>> GetByStore(@PathVariable Long storeId) {
+    public ResponseEntity<List<CorredorResponde>> getByStore(@PathVariable Long storeId) {
         List<CorredorEntity> list = corredorRepository.findByIdLoja(storeId);
         if (list == null || list.isEmpty()) return ResponseEntity.notFound().build(); // Ou retornar emptyList()
 

@@ -21,7 +21,7 @@ export const apiService = {
        Nota: O backend usa @RequestMapping("/users") e não "/User"
        ------------------------------------------------------------------ */
     login: async (nome, senha) => {
-        const response = await fetch(`${API_URL}/User/Login`, {
+        const response = await fetch(`${API_URL}/user/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nome, senha }), 
@@ -29,37 +29,35 @@ export const apiService = {
         // Se der erro 401 (senha errada), o handleResponse lança o erro
         return handleResponse(response);
     },
-    // Login: O UserController atual não tem endpoint /Login. 
-    // Usamos GetByName para simular (como no auth.js) ou ajusta se criares o endpoint.
+
     getUserByName: (nome) => 
-        fetch(`${API_URL}/User/UserGet?nome=${encodeURIComponent(nome)}`)
+        fetch(`${API_URL}/user/UserGet?nome=${encodeURIComponent(nome)}`)
             .then(handleResponse),
 
     register: (userData) => 
-        fetch(`${API_URL}/User/UserPost`, {
+        fetch(`${API_URL}/user/UserPost`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(userData),
         }).then(handleResponse),
 
     getAllUsers: () => 
-        fetch(`${API_URL}/User/GetAllUsers`) 
+        fetch(`${API_URL}/user/GetAllUsers`)
             .then(handleResponse),
 
     // Backend: @DeleteMapping("/UserDel/{id}") -> Usa PathVariable, não ?id=
     deleteUser: (id) => 
-        fetch(`${API_URL}/User/UserDel/${id}`, {
+        fetch(`${API_URL}/user/UserDel/${id}`, {
             method: 'DELETE',
         }).then(handleResponse),
 
     /* ------------------------------------------------------------------
        CORREDORES (Controller: /corredores)
-       Nota: O backend usa @RequestMapping("/corredores")
        ------------------------------------------------------------------ */
     getCorredores: () => 
         // Podes usar CGet (por nome) ou criar um endpoint CGetAll se necessário
         // Aqui mantemos o CGet se for pesquisa, ou ajusta para listar todos
-        fetch(`${API_URL}/corredores/CGet`) 
+        fetch(`${API_URL}/corredores/CGet`)
             .then(handleResponse),
     
     // Buscar corredores por Loja (Útil para listar todos de uma loja)
@@ -86,11 +84,11 @@ export const apiService = {
        ------------------------------------------------------------------ */
     getPrateleiras: (nome = '') => 
         // Backend: @GetMapping("/PGet") com @RequestParam opcional
-        fetch(`${API_URL}/Prateleira/PGet${nome ? `?nome=${encodeURIComponent(nome)}` : ''}`)
+        fetch(`${API_URL}/prateleira/PGet${nome ? `?nome=${encodeURIComponent(nome)}` : ''}`)
             .then(handleResponse),
 
     createPrateleira: (data) => 
-        fetch(`${API_URL}/Prateleira/PPost`, {
+        fetch(`${API_URL}/prateleira/PPost`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
@@ -98,7 +96,7 @@ export const apiService = {
 
     // Backend: @DeleteMapping("/PDelete") com @RequestParam -> Usa ?id=
     deletePrateleira: (id) => 
-        fetch(`${API_URL}/Prateleira/PDelete?id=${id}`, {
+        fetch(`${API_URL}/prateleira/PDelete?id=${id}`, {
             method: 'DELETE',
         }).then(handleResponse),
 
@@ -107,7 +105,7 @@ export const apiService = {
        ------------------------------------------------------------------ */
 
     getProducts: (nome = '') => 
-        fetch(`${API_URL}/Prod/ProdGet${nome ? `?nome=${encodeURIComponent(nome)}` : ''}`).then(handleResponse),
+        fetch(`${API_URL}/produtos/ProdGet${nome ? `?nome=${encodeURIComponent(nome)}` : ''}`).then(handleResponse),
 
     createProduct: (data) => {
         // --- TRADUÇÃO DE CAMPOS ---
@@ -121,7 +119,7 @@ export const apiService = {
             idCorredor: data.aisleId || data.idCorredor
         };
 
-        return fetch(`${API_URL}/Prod/ProdPost`, {
+        return fetch(`${API_URL}/produtos/ProdPost`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
@@ -129,7 +127,7 @@ export const apiService = {
     },
 
     deleteProduct: (id) => 
-        fetch(`${API_URL}/Prod/ProdDelete?id=${id}`, { method: 'DELETE' }).then(handleResponse),
+        fetch(`${API_URL}/produtos/ProdDelete?id=${id}`, { method: 'DELETE' }).then(handleResponse),
     
     // Suporte para update se necessário
     updateProduct: (data) => {
@@ -141,7 +139,7 @@ export const apiService = {
             idPrateleira: data.shelfId || data.idPrateleira,
             idCorredor: data.aisleId || data.idCorredor
         };
-        return fetch(`${API_URL}/Prod/AlterProd/${data.id}`, {
+        return fetch(`${API_URL}/produtos/AlterProd/${data.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),

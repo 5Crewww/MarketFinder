@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 // 1. Mudei para "/User" (Maiúsculo) para bater certo com o teu api.js
-@RequestMapping("/User")
+@RequestMapping("/user")
 // 2. ADICIONADO: Permite conexão do React
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class UserController {
@@ -51,7 +51,7 @@ public class UserController {
     // --- MÉTODOS ANTIGOS (Mantidos) ---
 
     @GetMapping("/UserGet")
-    public ResponseEntity<UserResponse> GetbyName(@RequestParam String nome) {
+    public ResponseEntity<UserResponse> getbyName(@RequestParam String nome) {
         UserModel m = userService.GetByName(nome);
         if (m == null) return ResponseEntity.notFound().build();
         UserResponse r = new UserResponse();
@@ -63,7 +63,7 @@ public class UserController {
     }
 
     @PostMapping("/UserPost")
-    public ResponseEntity<UserResponse> CreateUser(@RequestBody UserRequest userRequest) {
+    public ResponseEntity<UserResponse> createUser(@RequestBody UserRequest userRequest) {
         UserModel model = new UserModel();
         model.setNome(userRequest.getNome());
         model.setEmail(userRequest.getEmail());
@@ -81,14 +81,14 @@ public class UserController {
     }
 
     @DeleteMapping("/UserDelete") // Ajustei para bater certo com o padrão comum, ou podes manter UserDel/{id} se o frontend usar assim
-    public ResponseEntity<Void> DeleteUser(@RequestParam Long id) {
+    public ResponseEntity<Void> deleteUser(@RequestParam Long id) {
         boolean ok = userService.DeleteUser(id);
         if (!ok) return ResponseEntity.notFound().build();
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/UserUpdt")
-    public ResponseEntity<UserResponse> UpdateUser(@RequestBody UserRequest userRequest) {
+    public ResponseEntity<UserResponse> updateUser(@RequestBody UserRequest userRequest) {
         UserModel model = new UserModel();
         model.setIdUser(userRequest.getIdUser());
         model.setNome(userRequest.getNome());
@@ -108,7 +108,7 @@ public class UserController {
     }
 
     @GetMapping("/GetAllUsers")
-    public ResponseEntity<Iterable<UserModel>> GetAllUsers() {
+    public ResponseEntity<Iterable<UserModel>> getAllUsers() {
         Iterable<UserModel> users = userService.GetAllUsers();
         return ResponseEntity.ok(users);
     }

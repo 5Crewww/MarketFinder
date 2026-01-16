@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/Prateleira")
+@RequestMapping("/prateleira")
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true") // Importante para o React
 public class PrateleiraController {
 
@@ -49,7 +49,7 @@ public class PrateleiraController {
     // --- CRIAR (POST) ---
     // Endpoint: http://localhost:8080/Prateleira/PPost
     @PostMapping("/PPost")
-    public ResponseEntity<PrateleiraResponse> create(@RequestBody PrateleiraRequest req) {
+    public ResponseEntity<PrateleiraResponse> createPrateleiras(@RequestBody PrateleiraRequest req) {
         if (req == null || req.getName() == null || req.getCorredorId() == null) {
             return ResponseEntity.badRequest().build();
         }
@@ -75,7 +75,7 @@ public class PrateleiraController {
     // --- APAGAR (DELETE) ---
     // Endpoint: http://localhost:8080/Prateleira/PDelete?id=...
     @DeleteMapping("/PDelete")
-    public ResponseEntity<Void> delete(@RequestParam Long id) { // Nota: @RequestParam para bater certo com api.js (?id=1)
+    public ResponseEntity<Void> deletePrateleiras(@RequestParam Long id) { // Nota: @RequestParam para bater certo com api.js (?id=1)
         boolean ok = prateleiraService.deletePrateleira(id);
         if (!ok) return ResponseEntity.notFound().build();
         return ResponseEntity.noContent().build();

@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/Prod")
+@RequestMapping("/produtos")
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true") // Resolve o erro de bloqueio
 public class ProdutosController {
 
