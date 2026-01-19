@@ -6,11 +6,11 @@ import com.paf.Infrastructure.Entities.UserEntity;
 import com.paf.Infrastructure.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.Optional;
 import java.util.List;
 import java.util.ArrayList;
-
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
 @Service
 public class UserService {
 
@@ -21,6 +21,10 @@ public class UserService {
 
         if (userModel == null) {
             return "Invalid user";
+        }
+
+        if (userModel.getSenha() != null){
+            userModel.setSenha(hashPass(userModel.getSenha()));
         }
 
         // usa o mapper para criar a entity a partir do model
@@ -54,6 +58,10 @@ public class UserService {
         if (opt.isEmpty()) return null;
         UserEntity entity = opt.get();
 
+        if (userModel.getSenha() != null && !userModel.getSenha().isEmpty()) {
+            userModel.setSenha(hashPass(userModel.getSenha()));
+        }
+
         // usa o mapper para aplicar as alterações no entity sem perder o id
         UserMapper.updateEntityFromModel(entity, userModel);
 
@@ -70,5 +78,22 @@ public class UserService {
             }
         }
         return result;
+    }
+
+    public String hashPass (String senha) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(senha.getBytes(StandardCharsets.UTF_8));
+
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : encodedhash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -33,8 +33,10 @@ public class UserController {
         }
 
         // 3. Valida a senha (comparação simples)
-        if (!user.getSenha().equals(request.getSenha())) {
-            System.out.println("❌ Senha errada. Esperada: " + user.getSenha() + " | Recebida: " + request.getSenha());
+      String senhaHash = userService.hashPass(request.getSenha());
+
+        if(!user.getSenha().equals(senhaHash)) {
+            System.out.println("senha errada");
             return ResponseEntity.status(401).body("Senha incorreta");
         }
 
