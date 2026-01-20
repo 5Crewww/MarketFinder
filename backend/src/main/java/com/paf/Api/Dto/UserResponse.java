@@ -23,6 +23,8 @@ public class UserResponse {
     @SuppressWarnings("deprecation")
     @NotNull
     private String senha;
+    @NotNull
+    private String role;
 
 
 }

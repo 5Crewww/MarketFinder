@@ -15,6 +15,7 @@ public interface UserMapper {
         m.setNome(req.getNome());
         m.setEmail(req.getEmail());
         m.setSenha(req.getSenha());
+        m.setRole(req.getRole());
         return m;
     }
 
@@ -25,6 +26,7 @@ public interface UserMapper {
         r.setNome(model.getNome());
         r.setEmail(model.getEmail());
         r.setSenha(model.getSenha());
+        r.setRole(model.getRole());
         return r;
     }
 
@@ -36,6 +38,7 @@ public interface UserMapper {
         model.setNome(req.getNome());
         model.setEmail(req.getEmail());
         model.setSenha(req.getSenha());
+        model.setRole(req.getRole());
     }
 
     // Model <-> Entity (novos métodos)
@@ -48,6 +51,7 @@ public interface UserMapper {
         e.setNome(model.getNome());
         e.setEmail(model.getEmail());
         e.setSenha(model.getSenha());
+        e.setRole(model.getRole());
         return e;
     }
 
@@ -58,6 +62,7 @@ public interface UserMapper {
         m.setNome(entity.getNome());
         m.setEmail(entity.getEmail());
         m.setSenha(entity.getSenha());
+        m.setRole(entity.getRole());
         return m;
     }
 
@@ -69,5 +74,6 @@ public interface UserMapper {
         entity.setNome(model.getNome());
         entity.setEmail(model.getEmail());
         entity.setSenha(model.getSenha());
+        entity.setRole(model.getRole());
     }
 }

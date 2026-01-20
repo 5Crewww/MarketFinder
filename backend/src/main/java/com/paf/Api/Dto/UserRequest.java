@@ -23,5 +23,7 @@ public class UserRequest {
     @SuppressWarnings("deprecation")
     @NotNull
     private String senha;
+    @NotNull
+    private String role;
 
 }

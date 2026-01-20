@@ -20,5 +20,7 @@ public class UserEntity {
     private String email;
     @Column (name = "senha_user")
     private String senha;
+    @Column (name = "role")
+    private String role;
 
 }

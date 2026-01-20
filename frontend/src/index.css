@@ -4,23 +4,18 @@
    VARIÁVEIS - TEMA MATTE / SOLID (Flat Design)
    ========================================= */
 :root {
-  /* Fundo da Página (Cinza Sólido e Suave - "Slate") */
-  --bg-page: #f8fafc;
+  --bg-page: #f8fafc;         /* Fundo da Página Slate */
+  --card-bg: #ffffff;         /* Cartões */
+  --card-border: #e2e8f0;     /* Borda Sólida */
   
-  /* Cores dos Cartões */
-  --card-bg: #ffffff;
-  --card-border: #e2e8f0; /* Borda cinza clara sólida */
-  
-  /* Cores Principais (Sólidas, sem gradiente) */
-  --primary: #2563eb;     /* Azul Real Sólido */
+  --primary: #2563eb;         /* Azul Real */
   --primary-hover: #1d4ed8;
-  --danger: #ef4444;      /* Vermelho Mate */
+  --danger: #ef4444;          /* Vermelho Mate */
+  --success: #10b981;         /* Verde Mate */
   
-  /* Texto */
-  --text-main: #1e293b;   /* Quase preto */
-  --text-secondary: #64748b;
+  --text-main: #1e293b;       /* Quase preto */
+  --text-secondary: #64748b;  /* Cinza azulado */
   
-  /* Sombras (Suaves, para dar profundidade sem brilho) */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
@@ -32,302 +27,203 @@ body {
   background-color: var(--bg-page);
   color: var(--text-main);
   min-height: 100vh;
-  /* Removemos a imagem de fundo */
 }
 
-/* --- Layout Principal --- */
+/* --- Layout Principal (ADAPTADO PARA FULL SCREEN) --- */
 .dashboard-wrapper {
-  max-width: 1200px;
-  margin: 40px auto;
-  padding: 0 20px;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--bg-page);
 }
 
 /* --- Header Sólido --- */
 .glass-header {
-  /* Removemos o efeito de vidro */
   background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 12px; /* Cantos menos arredondados */
-  box-shadow: var(--shadow-sm);
-  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--card-border);
+  padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  z-index: 10;
 }
 
-.brand h1 { 
-  font-size: 1.5rem; 
+.glass-header h1 { 
+  font-size: 1.25rem; 
   font-weight: 700; 
-  letter-spacing: -0.5px;
-  color: var(--text-main); /* Cor sólida */
-}
-.brand span {
-  color: var(--primary); /* Destaque sólido */
+  color: var(--text-main); 
 }
 
-/* --- Navegação (Tabs) --- */
+/* --- Sidebar e Conteúdo (Layout Flex) --- */
+.app-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 320px;
+  background: var(--card-bg);
+  border-right: 1px solid var(--card-border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow-y: auto;
+  z-index: 5;
+}
+
+.main-content {
+  flex: 1;
+  background: #f1f5f9; /* Ligeiramente mais escuro que o card */
+  position: relative;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Tabs --- */
 .glass-tabs {
   display: flex;
-  gap: 10px;
-  margin-bottom: 30px;
-  border-bottom: 1px solid var(--card-border); /* Linha em baixo em vez de caixa */
-  padding-bottom: 10px;
-  background: transparent;
-  border-radius: 0;
-  width: 100%;
+  gap: 5px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--card-border);
+  padding-bottom: 15px;
 }
 
 .tab-btn {
+  flex: 1;
   background: transparent;
   border: none;
-  padding: 10px 15px;
+  padding: 10px;
   border-radius: 6px;
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.tab-btn:hover { 
-  color: var(--primary); 
-  background: #eff6ff; /* Azul muito claro ao passar o rato */
-}
+.tab-btn:hover { background: #eff6ff; color: var(--primary); }
+.tab-btn.active { background: var(--primary); color: white; }
 
-.tab-btn.active {
-  background: var(--primary);
-  color: white;
-  box-shadow: var(--shadow-sm);
-}
-
-/* --- Cards e Formulários --- */
-/* Mantemos a classe glass-card para não quebrar o React, mas mudamos o estilo */
-.glass-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-sm);
-  padding: 2rem;
-  margin-bottom: 2rem;
-  /* Sem blur */
-}
-
-.glass-card h3 {
-    border-bottom: 1px solid var(--card-border);
-    padding-bottom: 15px;
-    margin-bottom: 20px;
-    font-size: 1.25rem;
-}
-
-.floating-form {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-  align-items: end;
-}
-
-/* INPUTS FOSCOS */
+/* --- Inputs e Forms --- */
 input, select {
   width: 100%;
-  padding: 12px 15px;
-  border-radius: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
   border: 1px solid var(--card-border);
   background: #ffffff;
   color: var(--text-main);
-  font-size: 0.95rem;
-  transition: border-color 0.2s;
-  box-shadow: var(--shadow-sm);
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  transition: all 0.2s;
 }
 
 input:focus, select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); /* Anel de foco subtil */
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-/* --- Botões Sólidos --- */
+/* --- Botões --- */
 .btn-primary {
   background: var(--primary);
   color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
+  padding: 10px 20px;
+  border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: background-color 0.2s;
+  width: 100%;
+  transition: background 0.2s;
+}
+.btn-primary:hover { background-color: var(--primary-hover); }
+
+.btn-delete {
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+}
+.btn-delete:hover { background: #fef2f2; }
+
+.btn-logout {
+  background: var(--danger);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.85rem;
 }
 
-.btn-primary:hover { 
-    background-color: var(--primary-hover);
-    transform: none; /* Removemos o movimento */
-}
-
-.btn-icon { background: none; border: none; cursor: pointer; font-size: 1.2rem; opacity: 0.7; transition: opacity 0.2s; }
-.btn-icon:hover { opacity: 1; background: #f1f5f9; border-radius: 6px; }
-
-/* --- Listas --- */
+/* --- Listas e Cards --- */
 .list-item {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px;
-  background: #f8fafc; /* Fundo cinza muito claro */
-  border-radius: 8px;
-  margin-bottom: 10px;
-  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-sm);
 }
 
-.list-item strong { color: var(--text-main); }
-
-.tag {
-  background: #e2e8f0;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  margin-left: 10px;
-  font-weight: 600;
-}
-
-/* --- Mapa Preview --- */
-.map-preview-container {
-  text-align: center;
-  position: relative;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 2px dashed var(--card-border);
-  background: #f8fafc;
-}
-
-/* --- TOAST NOTIFICATIONS --- */
-.notification-toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  padding: 16px 24px;
-  border-radius: 8px;
-  background: white;
-  color: var(--text-main);
-  border: 1px solid var(--card-border);
-  box-shadow: var(--shadow-lg);
+/* --- Mapa --- */
+.map-container {
+  height: 100%;
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 12px;
-  z-index: 1000;
-  font-weight: 500;
-  animation: slideInRight 0.3s ease-out;
+  background: #e2e8f0; /* Fundo do canvas do mapa */
+  overflow: hidden;
 }
 
-.notification-toast.success { border-left: 4px solid #10b981; }
-.notification-toast.error { border-left: 4px solid #ef4444; }
-.notification-toast.info { border-left: 4px solid var(--primary); }
-
-@keyframes slideInRight {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+.map-frame {
+  position: relative;
+  background: white;
+  box-shadow: var(--shadow-lg);
+  border: 4px solid white;
 }
 
-/* =========================================
-   LOGIN ESPECÍFICO (CLEAN / SOLID STYLE)
-   ========================================= */
-
+/* --- Login Styles (Teus originais) --- */
 .login-container {
   min-height: 100vh;
   width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f1f5f9; /* Fundo cinza sólido */
-  /* Removemos as bolhas/gradientes */
+  background-color: var(--bg-page);
 }
-
-/* Removemos os pseudo-elementos (bolhas) */
-.login-container::before,
-.login-container::after {
-  display: none;
-}
-
-/* O Cartão de Login */
 .login-box {
   background: white;
   border: 1px solid var(--card-border);
   padding: 40px;
-  border-radius: 16px; /* Cantos menos redondos */
+  border-radius: 12px;
   width: 100%;
   max-width: 400px;
-  box-shadow: var(--shadow-lg); /* Sombra elegante */
+  box-shadow: var(--shadow-lg);
   text-align: center;
 }
+.form-group label { display: block; text-align: left; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; }
+.error-message { color: var(--danger); background: #fef2f2; padding: 10px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #fecaca; }
 
-/* Logo e Título */
-.logo {
-  font-size: 3rem;
-  margin-bottom: 20px;
-  display: inline-block;
-}
-
-.login-box h1 {
-  font-family: 'Inter', sans-serif;
-  font-size: 1.5rem;
-  color: var(--text-main);
-  margin-bottom: 10px;
-  font-weight: 700;
-}
-
-.login-box p {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    margin-bottom: 30px;
-}
-
-/* Inputs do Login */
-.form-group label {
-  font-size: 0.85rem;
+/* --- Notificações --- */
+.notification-toast {
+  position: fixed; top: 20px; right: 20px;
+  padding: 12px 20px;
+  background: white;
+  border-left: 4px solid var(--primary);
+  border-radius: 4px;
+  box-shadow: var(--shadow-lg);
   font-weight: 600;
-  color: var(--text-main);
-  margin-bottom: 6px;
-  display: block;
-  text-align: left;
+  z-index: 1000;
+  animation: slideIn 0.3s ease;
 }
-
-.login-box input {
-  background-color: #f8fafc;
-  border: 1px solid var(--card-border);
-  color: var(--text-main);
-  padding: 12px;
-}
-
-.login-box input:focus {
-  background-color: white;
-  border-color: var(--primary);
-}
-
-/* Mensagem de Erro */
-.error-message {
-  font-size: 0.85rem;
-  color: #ef4444;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  padding: 10px;
-  border-radius: 6px;
-  margin-bottom: 20px;
-  text-align: left;
-}
-
-/* Rodapé do Formulário */
-.form-footer {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  margin-top: 25px;
-}
-
-.form-footer button {
-  font-weight: 600;
-  color: var(--primary) !important;
-}
-
-.form-footer button:hover {
-  text-decoration: underline !important;
-  color: var(--primary-hover) !important;
-}
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }

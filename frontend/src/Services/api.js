@@ -1,6 +1,5 @@
 const API_URL = 'http://localhost:8080';
 
-// Função auxiliar para processar as respostas
 const handleResponse = async (response) => {
     if (!response.ok) {
         const errorText = await response.text();
@@ -17,16 +16,14 @@ const handleResponse = async (response) => {
 
 export const apiService = {
     /* ------------------------------------------------------------------
-       USUÁRIOS (Controller: /users)
-       Nota: O backend usa @RequestMapping("/users") e não "/User"
+       Controller: /users)
        ------------------------------------------------------------------ */
     login: async (nome, senha) => {
-        const response = await fetch(`${API_URL}/user/login`, {
+        const response = await fetch(`${API_URL}/user/Login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nome, senha }), 
         });
-        // Se der erro 401 (senha errada), o handleResponse lança o erro
         return handleResponse(response);
     },
 
@@ -45,9 +42,8 @@ export const apiService = {
         fetch(`${API_URL}/user/GetAllUsers`)
             .then(handleResponse),
 
-    // Backend: @DeleteMapping("/UserDel/{id}") -> Usa PathVariable, não ?id=
     deleteUser: (id) => 
-        fetch(`${API_URL}/user/UserDel/${id}`, {
+        fetch(`${API_URL}/user/UserDelete?id=${id}`, {
             method: 'DELETE',
         }).then(handleResponse),
 
@@ -55,12 +51,10 @@ export const apiService = {
        CORREDORES (Controller: /corredores)
        ------------------------------------------------------------------ */
     getCorredores: () => 
-        // Podes usar CGet (por nome) ou criar um endpoint CGetAll se necessário
-        // Aqui mantemos o CGet se for pesquisa, ou ajusta para listar todos
+
         fetch(`${API_URL}/corredores/CGet`)
             .then(handleResponse),
     
-    // Buscar corredores por Loja (Útil para listar todos de uma loja)
     getCorredoresByStore: (storeId) =>
         fetch(`${API_URL}/corredores/CGetByStore/${storeId}`)
             .then(handleResponse),
@@ -72,7 +66,6 @@ export const apiService = {
             body: JSON.stringify(data),
         }).then(handleResponse),
 
-    // Backend: @DeleteMapping("/CDel/{id}") -> Usa PathVariable
     deleteCorredor: (id) => 
         fetch(`${API_URL}/corredores/CDel/${id}`, {
             method: 'DELETE',
@@ -80,10 +73,9 @@ export const apiService = {
 
     /* ------------------------------------------------------------------
        PRATELEIRAS (Controller: /Prateleira)
-       Nota: Atualizado para o novo Controller que fizemos
        ------------------------------------------------------------------ */
+
     getPrateleiras: (nome = '') => 
-        // Backend: @GetMapping("/PGet") com @RequestParam opcional
         fetch(`${API_URL}/prateleira/PGet${nome ? `?nome=${encodeURIComponent(nome)}` : ''}`)
             .then(handleResponse),
 
@@ -94,7 +86,6 @@ export const apiService = {
             body: JSON.stringify(data),
         }).then(handleResponse),
 
-    // Backend: @DeleteMapping("/PDelete") com @RequestParam -> Usa ?id=
     deletePrateleira: (id) => 
         fetch(`${API_URL}/prateleira/PDelete?id=${id}`, {
             method: 'DELETE',
@@ -108,13 +99,10 @@ export const apiService = {
         fetch(`${API_URL}/produtos/ProdGet${nome ? `?nome=${encodeURIComponent(nome)}` : ''}`).then(handleResponse),
 
     createProduct: (data) => {
-        // --- TRADUÇÃO DE CAMPOS ---
-        // O Frontend envia 'shelfId', mas o Java (ProdutosRequest) espera 'idPrateleira'
         const payload = {
             nome: data.nome,
             descricao: data.descricao,
             preco: data.preco,
-            // Mapeamento Crucial:
             idPrateleira: data.shelfId || data.idPrateleira,
             idCorredor: data.aisleId || data.idCorredor
         };
@@ -129,7 +117,6 @@ export const apiService = {
     deleteProduct: (id) => 
         fetch(`${API_URL}/produtos/ProdDelete?id=${id}`, { method: 'DELETE' }).then(handleResponse),
     
-    // Suporte para update se necessário
     updateProduct: (data) => {
         const payload = {
             id: data.id,

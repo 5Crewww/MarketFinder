@@ -2,18 +2,18 @@ import React, { useState } from 'react';
 import { apiService } from '../Services/api';
 
 const Register = ({ onBackToLogin }) => {
-    // Estado único para todos os campos do formulário
+    
     const [formData, setFormData] = useState({
         nome: '',
         email: '',
         senha: '',
-        role: 'lojista' // Definido como lojista por padrão
+        role: 'user' 
     });
 
     const [status, setStatus] = useState({ type: '', message: '' });
     const [loading, setLoading] = useState(false);
 
-    // Função para atualizar o estado conforme o utilizador escreve
+   
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -28,12 +28,12 @@ const Register = ({ onBackToLogin }) => {
         setLoading(true);
 
         try {
-            // Chamada ao serviço que criámos no api.js
+            
             await apiService.register(formData);
             
             setStatus({ type: 'success', message: 'Conta criada com sucesso! A redirecionar...' });
             
-            // Aguarda 2 segundos para o utilizador ler a mensagem e volta ao Login
+        
             setTimeout(() => {
                 onBackToLogin();
             }, 2000);

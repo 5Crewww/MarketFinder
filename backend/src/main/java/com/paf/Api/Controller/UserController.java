@@ -23,16 +23,13 @@ public class UserController {
     public ResponseEntity<?> login(@RequestBody UserRequest request) {
         System.out.println(">>> Tentativa de Login: " + request.getNome());
 
-        // 1. Busca na BD
         UserModel user = userService.GetByName(request.getNome());
 
-        // 2. Valida se existe
         if (user == null) {
             System.out.println("❌ User não encontrado.");
             return ResponseEntity.status(401).body("Utilizador não encontrado");
         }
 
-        // 3. Valida a senha (comparação simples)
       String senhaHash = userService.hashPass(request.getSenha());
 
         if(!user.getSenha().equals(senhaHash)) {
@@ -40,17 +37,17 @@ public class UserController {
             return ResponseEntity.status(401).body("Senha incorreta");
         }
 
-        // 4. Sucesso
+
         System.out.println("✅ Login Sucesso!");
         UserResponse response = new UserResponse();
         response.setIdUser(user.getIdUser());
         response.setNome(user.getNome());
         response.setEmail(user.getEmail());
+        response.setRole(user.getRole());
 
         return ResponseEntity.ok(response);
     }
 
-    // --- MÉTODOS ANTIGOS (Mantidos) ---
 
     @GetMapping("/UserGet")
     public ResponseEntity<UserResponse> getbyName(@RequestParam String nome) {
@@ -70,6 +67,11 @@ public class UserController {
         model.setNome(userRequest.getNome());
         model.setEmail(userRequest.getEmail());
         model.setSenha(userRequest.getSenha());
+        if(userRequest.getRole() == null ||  userRequest.getRole().isEmpty()) {
+            model.setRole("user");
+        }else {
+            model.setRole(userRequest.getRole());
+        }
 
         String result = userService.CreateUser(model);
 
@@ -78,6 +80,7 @@ public class UserController {
         response.setNome(model.getNome());
         response.setEmail(model.getEmail());
         response.setSenha(model.getSenha());
+        response.setRole(model.getRole());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

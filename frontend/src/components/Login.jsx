@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { apiService } from '../Services/api';
 
 const Login = ({ onLoginSuccess, onNavigateToRegister }) => {
-    // Estados para controlar os inputs e mensagens
     const [nome, setNome] = useState('');
     const [senha, setSenha] = useState('');
     const [erro, setErro] = useState('');
@@ -14,30 +13,22 @@ const Login = ({ onLoginSuccess, onNavigateToRegister }) => {
         setLoading(true);
 
         try {
-            console.log("A enviar login:", { nome, senha }); // Debug
+            console.log("A enviar login:", { nome, senha }); 
 
-            // --- CORREÇÃO PRINCIPAL AQUI ---
-            // Antes tinhas: apiService.login(nome) -> Faltava a senha!
-            // Agora:
+           
             const user = await apiService.login(nome, senha);
 
-            // --- LÓGICA ATUALIZADA ---
-            // Se chegámos aqui, o Backend já confirmou que a senha está certa.
-            // Não precisamos do "if (user.senha === senha)"
-
-            // Definimos o role se não vier do banco (fallback)
             const userWithRole = {
                 ...user,
-                // Se o backend já mandar role, usa-o. Senão, usa a lógica do nome.
-                role: user.role || (user.nome.toLowerCase() === 'admin' ? 'admin' : 'lojista')
+                
+                role: user.role || (user.nome.toLowerCase() === 'admin' ? 'admin' : 'user')
             };
             
-            // Avisa o App.jsx que o login foi um sucesso
+            
             onLoginSuccess(userWithRole);
 
         } catch (err) {
             console.error("Erro Login:", err);
-            // Se o backend der erro 401, cai aqui
             setErro('Palavra-passe incorreta ou utilizador inexistente.');
         } finally {
             setLoading(false);
@@ -46,7 +37,7 @@ const Login = ({ onLoginSuccess, onNavigateToRegister }) => {
 
     return (
         <div className="login-container">
-            <div className="login-box"> {/* Se usares o meu CSS anterior, muda class para "login-card" */}
+            <div className="login-box"> 
                 <div className="logo" style={{fontSize: '3rem', marginBottom: '10px'}}>🛒</div>
                 <h1>Supermarket Finder</h1>
                 
@@ -76,6 +67,8 @@ const Login = ({ onLoginSuccess, onNavigateToRegister }) => {
                             style={{width: '100%', padding: '10px'}}
                         />
                     </div>
+
+                  
 
                     <button type="submit" className="btn-primary" disabled={loading} style={{width: '100%', padding: '12px', cursor:'pointer'}}>
                         {loading ? 'A verificar...' : 'Entrar'}
