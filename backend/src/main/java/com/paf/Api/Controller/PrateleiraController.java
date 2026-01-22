@@ -80,4 +80,32 @@ public class PrateleiraController {
         if (!ok) return ResponseEntity.notFound().build();
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/updatePrat/{id}")
+    public ResponseEntity<PrateleiraResponse> updatePrat(@PathVariable Long id, @RequestBody PrateleiraRequest req) {
+        PrateleirasModel model = new PrateleirasModel();
+        model.setId(id);
+        model.setName(req.getName());
+        model.setCorredorId(req.getCorredorId());
+        model.setPosX(req.getPosX());
+        model.setPosY(req.getPosY());
+        model.setWidth(req.getWidth());
+        model.setHeight(req.getHeight());
+
+
+
+        PrateleirasModel update = prateleiraService.updatePrateleira(model);
+        if (update == null) return ResponseEntity.notFound().build();
+
+        PrateleiraResponse r = new PrateleiraResponse();
+        r.setId(update.getId());
+        r.setName(update.getName());
+        r.setCorredorId(update.getCorredorId());
+        r.setPosX(update.getPosX());
+        r.setPosY(update.getPosY());
+        r.setWidth(update.getWidth());
+        r.setHeight(update.getHeight());
+
+        return ResponseEntity.ok(r);
+    }
 }

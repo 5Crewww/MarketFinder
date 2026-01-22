@@ -14,7 +14,7 @@ public class CorredorResponde {
     private String name;
     private Long storeId;
 
-    // helper para criar response a partir do model
+    // helper
     public static CorredorResponde fromModel(CorredorModel m) {
         if (m == null) return null;
         CorredorResponde r = new CorredorResponde();

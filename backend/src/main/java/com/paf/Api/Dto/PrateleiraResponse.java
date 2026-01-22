@@ -17,6 +17,7 @@ public class PrateleiraResponse {
     private Double width;
     private Double height;
 
+    // helper
     public static PrateleiraResponse fromModel(PrateleirasModel m) {
         if (m == null) return null;
         PrateleiraResponse r = new PrateleiraResponse();

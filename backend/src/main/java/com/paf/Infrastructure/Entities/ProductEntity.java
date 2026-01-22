@@ -12,14 +12,14 @@ public class ProductEntity {
 
 
     @Id // Marca como chave primária
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Estratégia para ID autoincrementável
-    @Column(name = "id_prod") // O nome da coluna na base de dados
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_prod")
     private Long id;
-    @Column(name = "nome")// Nome do produto, não pode ser nulo
+    @Column(name = "nome")
     private String nome;
-    @Column(name = "descricao") // Descrição do produto
+    @Column(name = "descricao")
     private String descricao;
-    @Column(name = "preco") // Preço do produto, não pode ser nulo
+    @Column(name = "preco")
     private double preco;
     @Column(name = "id_prateleira")
     private Long idPrateleira;

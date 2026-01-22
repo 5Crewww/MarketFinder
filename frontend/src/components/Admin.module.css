@@ -1,0 +1,115 @@
+.container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--card-border);
+  padding-bottom: 1rem;
+}
+
+.title h1 { font-size: 1.5rem; color: var(--text-main); margin: 0; }
+.title p { color: var(--text-secondary); margin: 5px 0 0 0; font-size: 0.9rem; }
+
+/* Estatísticas */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.statCard {
+  background: var(--card-bg);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+}
+
+.statNumber {
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 10px 0 0 0;
+  color: var(--text-main);
+}
+
+/* Formulário de Criação */
+.createSection {
+  margin-bottom: 2rem;
+}
+
+.formCard {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  margin-top: 15px;
+  animation: fadeIn 0.3s ease;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+/* Tabela */
+.tableContainer {
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--card-border);
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.th {
+  background: #f1f5f9;
+  color: var(--text-main);
+  padding: 15px;
+  font-weight: 600;
+  border-bottom: 2px solid var(--card-border);
+}
+
+.td {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  color: var(--text-main);
+}
+
+/* Badges e Botões */
+.badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: white;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.btnDelete {
+  background: #fee2e2;
+  color: var(--danger);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.btnDelete:hover { background: #fecaca; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }

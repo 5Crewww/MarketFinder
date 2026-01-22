@@ -1,0 +1,38 @@
+.container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--bg-page);
+}
+
+.box {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 40px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.logo { font-size: 3rem; margin-bottom: 20px; display: inline-block; }
+.title { font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-bottom: 10px; }
+.label { display: block; text-align: left; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; color: var(--text-main); }
+
+.error {
+  color: var(--danger);
+  background: #fef2f2;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  border: 1px solid #fecaca;
+  font-size: 0.85rem;
+}
+
+.linkBtn {
+  background: none; border: none; color: var(--primary); 
+  cursor: pointer; text-decoration: underline; font-weight: 600;
+}

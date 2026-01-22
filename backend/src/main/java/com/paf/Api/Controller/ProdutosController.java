@@ -23,13 +23,11 @@ public class ProdutosController {
         this.produtoService = produtoService;
     }
 
-    // --- LISTAR (GET) ---
-    // Resolve o erro "Required parameter 'nome' is not present"
+    // --- LISTAR (GET) --
     @GetMapping("/ProdGet")
     public ResponseEntity<List<ProdutosResponse>> getProdutos(@RequestParam(required = false) String nome) {
         List<ProdutoModel> models;
 
-        // Se não vier nome, busca TODOS. Se vier, filtra.
         if (nome == null || nome.isEmpty()) {
             models = produtoService.getAll(); // Tens de garantir que este método existe no Service
         } else {
@@ -38,7 +36,6 @@ public class ProdutosController {
             models = (pm != null) ? List.of(pm) : Collections.emptyList();
         }
 
-        // Converte Models -> DTOs para o React
         List<ProdutosResponse> resp = models.stream()
                 .map(m -> {
                     ProdutosResponse r = new ProdutosResponse();
@@ -57,12 +54,10 @@ public class ProdutosController {
     }
 
     // --- CRIAR (POST) ---
-    // Mudei para /ProdPost para alinhar com o api.js
     @PostMapping("/ProdPost")
     public ResponseEntity<ProdutosResponse> createProd(@RequestBody ProdutosRequest req) {
         if (req == null) return ResponseEntity.badRequest().build();
 
-        // 1. Converter Request -> Model
         ProdutoModel model = new ProdutoModel();
         model.setNome(req.getNome());
         model.setDescricao(req.getDescricao());
@@ -70,11 +65,8 @@ public class ProdutosController {
         model.setIdCorredor(req.getIdCorredor());
         model.setIdPrateleira(req.getIdPrateleira());
 
-        // 2. Chamar Service
-        // Nota: O teu service deve retornar o Objeto criado (ProdutoModel) e não String
         ProdutoModel created = produtoService.createProdutoObject(model);
 
-        // 3. Converter Model -> Response
         ProdutosResponse r = new ProdutosResponse();
         r.setId(created.getId());
         r.setNome(created.getNome());
@@ -87,7 +79,6 @@ public class ProdutosController {
     }
 
     // --- APAGAR (DELETE) ---
-    // Mudei para Query Param (?id=1) para alinhar com o api.js
     @DeleteMapping("/ProdDelete")
     public ResponseEntity<Void> deleteProd(@RequestParam Long id) {
         boolean ok = produtoService.deleteProduto(id);

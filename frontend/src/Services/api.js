@@ -1,17 +1,14 @@
 const API_URL = 'http://localhost:8080';
 
-const handleResponse = async (response) => {
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `Erro: ${response.status}`);
-    }
-    // Tenta fazer parse do JSON. Se não houver conteúdo (ex: 204 No Content), retorna null
-    try {
-        const text = await response.text();
-        return text ? JSON.parse(text) : null;
-    } catch (e) {
-        return null;
-    }
+const handleResponse = (response) => {
+    return response.text().then(text => {
+        const data = text && JSON.parse(text);
+        if (!response.ok) {
+            const error = (data && data.message) || response.statusText;
+            return Promise.reject(error);
+        }
+        return data;
+    });
 };
 
 export const apiService = {
@@ -90,6 +87,15 @@ export const apiService = {
         fetch(`${API_URL}/prateleira/PDelete?id=${id}`, {
             method: 'DELETE',
         }).then(handleResponse),
+
+       updatePrateleira: (id, dados) =>
+    fetch(`${API_URL}/prateleira/updatePrat/${id}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dados)
+    }).then(handleResponse),
 
     /* ------------------------------------------------------------------
        PRODUTOS (Controller: /Prod)

@@ -20,28 +20,18 @@ public class ProdutoService {
     @Autowired
     private ProdutoRepository produtoRepository;
 
-    /**
-     * MUDANÇA 1: createProdutoObject
-     * Retorna o OBJETO completo (com ID) em vez de String.
-     * Isso permite ao Controller devolver JSON válido ao React.
-     */
+
     public ProdutoModel createProdutoObject(ProdutoModel produtoModel) {
         if (produtoModel == null) {
             return null;
         }
         ProductEntity prod = ProductMapper.toEntity(produtoModel);
 
-        // Salva e gera o ID automaticamente
         ProductEntity saved = produtoRepository.save(prod);
 
-        // Retorna o modelo convertido de volta (agora com ID)
         return ProductMapper.toModel(saved);
     }
 
-    /**
-     * MUDANÇA 2: getAll()
-     * Necessário para carregar a tabela inicial quando não há pesquisa.
-     */
     public List<ProdutoModel> getAll() {
         List<ProductEntity> entities = produtoRepository.findAll();
         if (entities.isEmpty()) return Collections.emptyList();
@@ -51,17 +41,10 @@ public class ProdutoService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * MUDANÇA 3: GetByName (Ajuste)
-     * Mantive a tua lógica, mas é preferível retornar List no futuro.
-     * Por agora, devolve um único modelo para não partir o código antigo.
-     */
     public ProdutoModel GetByName(String nome) {
-        // Nota: Se houver 2 produtos com nomes parecidos, o Optional pode dar erro.
-        // O ideal seria o Repository retornar List<ProductEntity>
-        Optional<ProductEntity> pbn = produtoRepository.findByNomeContainingIgnoreCase(nome)
-                .stream().findFirst(); // Pega o primeiro para evitar erros se vierem muitos
 
+        Optional<ProductEntity> pbn = produtoRepository.findByNomeContainingIgnoreCase(nome)
+                .stream().findFirst();
         if (pbn.isEmpty()) return null;
         return ProductMapper.toModel(pbn.get());
     }

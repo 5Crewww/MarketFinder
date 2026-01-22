@@ -33,27 +33,19 @@ public class CorredorController {
     @Setter
     private Long currentUserId;
 
-    // --- MUDANÇA PRINCIPAL AQUI ---
-    // Agora retorna uma Lista e o 'nome' é opcional.
-    // Endpoint: http://localhost:8080/corredores/CGet (Retorna todos)
-    // Endpoint: http://localhost:8080/corredores/CGet?nome=Laticinios (Filtra por nome)
     @GetMapping("/CGet")
     public ResponseEntity<List<CorredorResponde>> getCorredores(@RequestParam(required = false) String nome){
         List<CorredorEntity> entities;
 
         if (nome == null || nome.isEmpty()) {
-            // Se não houver nome, busca todos
             entities = corredorRepository.findAll();
         } else {
-            // Se houver nome, busca específico (e envolve numa lista)
             Optional<CorredorEntity> opt = corredorRepository.findByNome(nome);
             if (opt.isEmpty()) {
                 return ResponseEntity.ok(Collections.emptyList());
             }
             entities = List.of(opt.get());
         }
-
-        // Converter entidades para DTOs
         List<CorredorResponde> responseList = entities.stream()
                 .map(e -> CorredorResponde.fromModel(CorredorMapper.toModel(e)))
                 .collect(Collectors.toList());

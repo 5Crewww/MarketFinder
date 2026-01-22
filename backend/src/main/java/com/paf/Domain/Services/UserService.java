@@ -26,14 +26,10 @@ public class UserService {
         if (userModel.getSenha() != null){
             userModel.setSenha(hashPass(userModel.getSenha()));
         }
-
-        // usa o mapper para criar a entity a partir do model
         UserEntity userEntity = UserMapper.toEntity(userModel);
 
-        // persist
         UserEntity saved = userRepository.save(userEntity);
 
-        // mapear de volta o id gerado para o model
         userModel.setIdUser(saved.getId());
 
         return "User created with id: " + saved.getId();
@@ -42,7 +38,6 @@ public class UserService {
     public UserModel GetByName(String nome) {
         Optional<UserEntity> opt = userRepository.findByNome(nome);
         if (opt.isEmpty()) return null;
-        // usa o mapper para converter entity -> model
         return UserMapper.toModel(opt.get());
     }
 
@@ -62,7 +57,6 @@ public class UserService {
             userModel.setSenha(hashPass(userModel.getSenha()));
         }
 
-        // usa o mapper para aplicar as alterações no entity sem perder o id
         UserMapper.updateEntityFromModel(entity, userModel);
 
         UserEntity saved = userRepository.save(entity);

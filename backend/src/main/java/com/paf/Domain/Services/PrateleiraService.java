@@ -26,8 +26,6 @@ public class PrateleiraService {
 
         PrateleiraEntity entity = PrateleiraMapper.toEntity(model);
         PrateleiraEntity saved = repository.save(entity);
-
-        // Retorna o modelo completo com o ID novo
         return PrateleiraMapper.toModel(saved);
     }
 
@@ -41,22 +39,13 @@ public class PrateleiraService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * MUDANÇA 3: Método getByName()
-     * Motivo: O Controller chama isto quando o React faz uma pesquisa (?nome=X).
-     */
     public List<PrateleirasModel> getByName(String name) {
         if (name == null) return Collections.emptyList();
-
-        // Opção A: Se o teu Repository tiver findByNomeContaining, usa-o (Melhor Performance).
-        // Opção B: Filtrar aqui no Java (Seguro se não quiseres mexer no Repository agora):
         return repository.findAll().stream()
                 .filter(e -> e.getNome() != null && e.getNome().toLowerCase().contains(name.toLowerCase()))
                 .map(PrateleiraMapper::toModel)
                 .collect(Collectors.toList());
     }
-
-    // --- MÉTODOS ANTIGOS MANTIDOS ---
 
     public PrateleirasModel getById(Long id) {
         Optional<PrateleiraEntity> opt = repository.findById(id);

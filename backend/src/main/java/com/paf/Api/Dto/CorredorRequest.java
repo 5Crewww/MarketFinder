@@ -11,14 +11,11 @@ import org.antlr.v4.runtime.misc.NotNull;
 @NoArgsConstructor
 public class CorredorRequest {
 
-    // id é opcional (para updates)
     private Long id;
-
     @SuppressWarnings("deprecation")
     @NotNull
     private String nome;
-
-    // opcional: id da loja (quando o frontend fornece explicitamente)
+    @NotNull
     private Long storeId;
 
 }

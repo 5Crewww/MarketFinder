@@ -76,7 +76,7 @@ public class UserController {
         String result = userService.CreateUser(model);
 
         UserResponse response = new UserResponse();
-        response.setIdUser(model.getIdUser()); // Nota: O teu modelo usa setIdUser, mantive assim
+        response.setIdUser(model.getIdUser());
         response.setNome(model.getNome());
         response.setEmail(model.getEmail());
         response.setSenha(model.getSenha());
@@ -85,7 +85,7 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @DeleteMapping("/UserDelete") // Ajustei para bater certo com o padrão comum, ou podes manter UserDel/{id} se o frontend usar assim
+    @DeleteMapping("/UserDelete")
     public ResponseEntity<Void> deleteUser(@RequestParam Long id) {
         boolean ok = userService.DeleteUser(id);
         if (!ok) return ResponseEntity.notFound().build();

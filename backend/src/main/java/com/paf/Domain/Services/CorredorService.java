@@ -10,19 +10,18 @@ import java.util.Optional;
 public class CorredorService {
 
     private CorredorRepository corredorRepository;
-    private Long currentUserId; // definido externamente via setter
+    private Long currentUserId;
 
-    // Setter simples para injetar o repositório sem Spring
     public void setCorredorRepository(CorredorRepository corredorRepository) {
         this.corredorRepository = corredorRepository;
     }
 
-    // Setter para definir o id do usuário atual (o caller deve setar antes de usar)
+
     public void setCurrentUserId(Long currentUserId) {
         this.currentUserId = currentUserId;
     }
 
-    // Getter simples usado internamente
+
     private Long getCurrentUserId() {
         return this.currentUserId;
     }
@@ -33,19 +32,15 @@ public class CorredorService {
             return "Invalid corredor";
         }
 
-        // garante que o storeId seja sempre o id do usuário configurado
         Long userId = getCurrentUserId();
         if (userId != null) {
             corredorModel.setStoreId(userId);
         }
 
-        // usa o mapper para criar a entity a partir do model
         CorredorEntity corredorEntity = CorredorMapper.toEntity(corredorModel);
 
-        // persist
         CorredorEntity saved = corredorRepository.save(corredorEntity);
 
-        // mapear de volta o id gerado para o model
         corredorModel.setId(saved.getId());
 
         return "Shelf created with id: " + saved.getId();
@@ -54,7 +49,6 @@ public class CorredorService {
     public CorredorModel GetByName(String nome) {
         Optional<CorredorEntity> opt = corredorRepository.findByNome(nome);
         if (opt.isEmpty()) return null;
-        // usa o mapper para converter entity -> model
         return CorredorMapper.toModel(opt.get());
     }
 
@@ -70,7 +64,6 @@ public class CorredorService {
         if (opt.isEmpty()) return null;
         CorredorEntity entity = opt.get();
 
-        // garante que o storeId seja sempre o id do usuário configurado
         Long userId = getCurrentUserId();
         if (userId != null) {
             corredorModel.setStoreId(userId);
