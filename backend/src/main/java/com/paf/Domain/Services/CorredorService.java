@@ -1,77 +1,114 @@
 package com.paf.Domain.Services;
 
-import com.paf.Domain.Mappers.CorredorMapper;
-import com.paf.Domain.Models.CorredorModel;
 import com.paf.Infrastructure.Entities.CorredorEntity;
+import com.paf.Infrastructure.Entities.StoreEntity;
 import com.paf.Infrastructure.Repository.CorredorRepository;
+import com.paf.Infrastructure.Repository.ProdutoRepository;
+import com.paf.Infrastructure.Repository.StoreRepository;
+import com.paf.Util.InputSanitizer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
+import java.util.Collections;
+import java.util.List;
 
+@Service
 public class CorredorService {
 
-    private CorredorRepository corredorRepository;
-    private Long currentUserId;
+    private final CorredorRepository corredorRepository;
+    private final StoreRepository storeRepository;
+    private final ProdutoRepository produtoRepository;
 
-    public void setCorredorRepository(CorredorRepository corredorRepository) {
+    @Autowired
+    public CorredorService(
+            CorredorRepository corredorRepository,
+            StoreRepository storeRepository,
+            ProdutoRepository produtoRepository
+    ) {
         this.corredorRepository = corredorRepository;
+        this.storeRepository = storeRepository;
+        this.produtoRepository = produtoRepository;
     }
 
+    public List<CorredorEntity> getCorredores(Long storeId, String nome) {
+        requirePositiveId(storeId, "Loja inválida.");
 
-    public void setCurrentUserId(Long currentUserId) {
-        this.currentUserId = currentUserId;
-    }
-
-
-    private Long getCurrentUserId() {
-        return this.currentUserId;
-    }
-
-    public String CreateCorredor(CorredorModel corredorModel) {
-
-        if (corredorModel == null) {
-            return "Invalid corredor";
+        if (nome == null || nome.isBlank()) {
+            return corredorRepository.findByStoreIdOrderByNomeAsc(storeId);
         }
 
-        Long userId = getCurrentUserId();
-        if (userId != null) {
-            corredorModel.setStoreId(userId);
+        String nomeLimpo = InputSanitizer.sanitizeText(nome, 120);
+        if (nomeLimpo == null) {
+            return Collections.emptyList();
         }
 
-        CorredorEntity corredorEntity = CorredorMapper.toEntity(corredorModel);
-
-        CorredorEntity saved = corredorRepository.save(corredorEntity);
-
-        corredorModel.setId(saved.getId());
-
-        return "Shelf created with id: " + saved.getId();
+        return corredorRepository.findByStoreIdAndNomeContainingIgnoreCaseOrderByNomeAsc(storeId, nomeLimpo);
     }
 
-    public CorredorModel GetByName(String nome) {
-        Optional<CorredorEntity> opt = corredorRepository.findByNome(nome);
-        if (opt.isEmpty()) return null;
-        return CorredorMapper.toModel(opt.get());
+    public CorredorEntity createCorredor(String nome, Long storeId) {
+        requirePositiveId(storeId, "Loja inválida.");
+
+        StoreEntity store = storeRepository.findById(storeId).orElse(null);
+        if (store == null) {
+            return null;
+        }
+
+        String nomeLimpo = InputSanitizer.sanitizeText(nome, 120);
+        if (nomeLimpo == null) {
+            throw new IllegalArgumentException("Nome do corredor é obrigatório.");
+        }
+
+        CorredorEntity entity = new CorredorEntity();
+        entity.setNome(nomeLimpo);
+        entity.setStore(store);
+        return corredorRepository.save(entity);
     }
 
-    public boolean DeleteCorredor(Long id) {
-        if (!corredorRepository.existsById(id)) return false;
-        corredorRepository.deleteById(id);
+    @Transactional
+    public CorredorEntity updateCorredor(Long id, String nome, Long storeId, Long version) {
+        requirePositiveId(id, "Corredor inválido.");
+        requirePositiveId(storeId, "Loja inválida.");
+
+        CorredorEntity entity = corredorRepository.findByIdAndStoreId(id, storeId).orElse(null);
+        if (entity == null) {
+            return null;
+        }
+
+        if (version != null && entity.getVersion() != null && !version.equals(entity.getVersion())) {
+            throw new OptimisticLockingFailureException("Corredor desatualizado.");
+        }
+
+        if (nome != null) {
+            String nomeLimpo = InputSanitizer.sanitizeText(nome, 120);
+            if (nomeLimpo == null) {
+                throw new IllegalArgumentException("Nome do corredor é obrigatório.");
+            }
+            entity.setNome(nomeLimpo);
+        }
+
+        return corredorRepository.save(entity);
+    }
+
+    @Transactional
+    public boolean deleteCorredor(Long id, Long storeId) {
+        requirePositiveId(id, "Corredor inválido.");
+        requirePositiveId(storeId, "Loja inválida.");
+
+        CorredorEntity entity = corredorRepository.findByIdAndStoreId(id, storeId).orElse(null);
+        if (entity == null) {
+            return false;
+        }
+
+        corredorRepository.delete(entity);
+        produtoRepository.deleteOrphanProducts();
         return true;
     }
 
-    public CorredorModel UpdateCorredor(CorredorModel corredorModel) {
-        if (corredorModel == null || corredorModel.getId() == null) return null;
-        Optional<CorredorEntity> opt = corredorRepository.findById(corredorModel.getId());
-        if (opt.isEmpty()) return null;
-        CorredorEntity entity = opt.get();
-
-        Long userId = getCurrentUserId();
-        if (userId != null) {
-            corredorModel.setStoreId(userId);
+    private void requirePositiveId(Long value, String message) {
+        if (value == null || value <= 0) {
+            throw new IllegalArgumentException(message);
         }
-
-        CorredorMapper.updateEntityFromModel(entity, corredorModel);
-
-        CorredorEntity saved = corredorRepository.save(entity);
-        return CorredorMapper.toModel(saved);
     }
 }

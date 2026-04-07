@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
+WRAPPER_PROPERTIES="${BASE_DIR}/.mvn/wrapper/maven-wrapper.properties"
+
+if [[ ! -f "${WRAPPER_PROPERTIES}" ]]; then
+    echo "Maven wrapper properties not found: ${WRAPPER_PROPERTIES}" >&2
+    exit 1
+fi
+
+require_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Required command not found: $1" >&2
+        exit 1
+    fi
+}
+
+require_command java
+require_command curl
+require_command unzip
+
+distribution_url="$(grep '^distributionUrl=' "${WRAPPER_PROPERTIES}" | cut -d'=' -f2-)"
+if [[ -z "${distribution_url}" ]]; then
+    echo "distributionUrl not configured in ${WRAPPER_PROPERTIES}" >&2
+    exit 1
+fi
+
+distribution_file="${distribution_url##*/}"
+distribution_name="${distribution_file%.zip}"
+distribution_root="${distribution_name%-bin}"
+cache_dir="${BASE_DIR}/.mvn/wrapper/dists"
+archive_path="${cache_dir}/${distribution_file}"
+maven_home="${cache_dir}/${distribution_root}"
+
+mkdir -p "${cache_dir}"
+
+if [[ ! -x "${maven_home}/bin/mvn" ]]; then
+    tmp_dir="$(mktemp -d "${cache_dir}/tmp.XXXXXX")"
+    trap 'rm -rf "${tmp_dir}"' EXIT
+
+    curl --fail --location --silent --show-error "${distribution_url}" --output "${archive_path}"
+    unzip -q -o "${archive_path}" -d "${tmp_dir}"
+
+    extracted_dir="$(find "${tmp_dir}" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+    if [[ -z "${extracted_dir}" ]]; then
+        echo "Failed to unpack Maven distribution from ${distribution_file}" >&2
+        exit 1
+    fi
+
+    rm -rf "${maven_home}"
+    mv "${extracted_dir}" "${maven_home}"
+    rm -rf "${tmp_dir}"
+    trap - EXIT
+fi
+
+exec "${maven_home}/bin/mvn" "$@"

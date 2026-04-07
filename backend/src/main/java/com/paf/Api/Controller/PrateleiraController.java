@@ -2,110 +2,126 @@ package com.paf.Api.Controller;
 
 import com.paf.Api.Dto.PrateleiraRequest;
 import com.paf.Api.Dto.PrateleiraResponse;
-import com.paf.Domain.Models.PrateleirasModel;
 import com.paf.Domain.Services.PrateleiraService;
+import com.paf.Domain.Services.StoreAccessService;
+import com.paf.Infrastructure.Entities.PrateleiraEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/prateleira")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true") // Importante para o React
+@RequestMapping("/prateleiras")
 public class PrateleiraController {
 
     private final PrateleiraService prateleiraService;
+    private final StoreAccessService storeAccessService;
 
     @Autowired
-    public PrateleiraController(PrateleiraService prateleiraService) {
+    public PrateleiraController(PrateleiraService prateleiraService, StoreAccessService storeAccessService) {
         this.prateleiraService = prateleiraService;
+        this.storeAccessService = storeAccessService;
     }
 
-    // --- LISTAR (GET) ---
-    // Endpoint: http://localhost:8080/Prateleira/PGet?nome=...
-    @GetMapping("/PGet")
-    public ResponseEntity<List<PrateleiraResponse>> getPrateleiras(@RequestParam(required = false) String nome) {
-        List<PrateleirasModel> models;
+    @GetMapping
+    public ResponseEntity<List<PrateleiraResponse>> getPrateleiras(
+            @RequestParam Long storeId,
+            @RequestParam(required = false) String nome,
+            @RequestParam(required = false) Long corredorId
+    ) {
+        List<PrateleiraEntity> entities;
 
-        if (nome == null || nome.isEmpty()) {
-            models = prateleiraService.getAll();
+        if (corredorId != null) {
+            entities = prateleiraService.getByCorredor(storeId, corredorId);
+        } else if (nome == null || nome.isBlank()) {
+            entities = prateleiraService.getAll(storeId);
         } else {
-            models = prateleiraService.getByName(nome);
+            entities = prateleiraService.getByName(storeId, nome);
         }
 
-        // Converter Models para DTOs
-        List<PrateleiraResponse> resp = models.stream()
-                .map(PrateleiraResponse::fromModel)
-                .collect(Collectors.toList());
-
-        // Retorna SEMPRE 200 OK, mesmo que a lista esteja vazia ([]).
-        // Assim o React não falha ao fazer .json()
-        return ResponseEntity.ok(resp);
+        List<PrateleiraResponse> response = entities.stream().map(this::toResponse).toList();
+        return ResponseEntity.ok(response);
     }
 
-    // --- CRIAR (POST) ---
-    // Endpoint: http://localhost:8080/Prateleira/PPost
-    @PostMapping("/PPost")
-    public ResponseEntity<PrateleiraResponse> createPrateleiras(@RequestBody PrateleiraRequest req) {
-        if (req == null || req.getName() == null || req.getCorredorId() == null) {
-            return ResponseEntity.badRequest().build();
+    @PostMapping
+    public ResponseEntity<PrateleiraResponse> createPrateleiras(
+            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @RequestBody PrateleiraRequest req
+    ) {
+        storeAccessService.requireStoreAccess(sessionToken, req.getStoreId());
+
+        PrateleiraEntity created = prateleiraService.createPrateleira(
+                req.getName(),
+                req.getCorredorId(),
+                req.getStoreId(),
+                req.getPosX(),
+                req.getPosY(),
+                req.getWidth(),
+                req.getHeight()
+        );
+        if (created == null) {
+            return ResponseEntity.notFound().build();
         }
 
-        // 1. Converter Request DTO -> Model
-        PrateleirasModel model = new PrateleirasModel();
-        model.setName(req.getName());
-        model.setCorredorId(req.getCorredorId());
-        model.setPosX(req.getPosX());
-        model.setPosY(req.getPosY());
-        model.setWidth(req.getWidth());
-        model.setHeight(req.getHeight());
-
-
-        // 2. Chamar o Serviço
-        // Nota: O Service precisa de retornar o Model criado, não uma String
-        PrateleirasModel created = prateleiraService.createPrateleira(model);
-
-        // 3. Converter Model -> Response DTO
-        return ResponseEntity.status(HttpStatus.CREATED).body(PrateleiraResponse.fromModel(created));
+        ResponseEntity<PrateleiraResponse> body = ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
+        return body;
     }
 
-    // --- APAGAR (DELETE) ---
-    // Endpoint: http://localhost:8080/Prateleira/PDelete?id=...
-    @DeleteMapping("/PDelete")
-    public ResponseEntity<Void> deletePrateleiras(@RequestParam Long id) { // Nota: @RequestParam para bater certo com api.js (?id=1)
-        boolean ok = prateleiraService.deletePrateleira(id);
-        if (!ok) return ResponseEntity.notFound().build();
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePrateleiras(
+            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @PathVariable Long id,
+            @RequestParam Long storeId
+    ) {
+        storeAccessService.requireStoreAccess(sessionToken, storeId);
+        boolean ok = prateleiraService.deletePrateleira(id, storeId);
+        if (!ok) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/updatePrat/{id}")
-    public ResponseEntity<PrateleiraResponse> updatePrat(@PathVariable Long id, @RequestBody PrateleiraRequest req) {
-        PrateleirasModel model = new PrateleirasModel();
-        model.setId(id);
-        model.setName(req.getName());
-        model.setCorredorId(req.getCorredorId());
-        model.setPosX(req.getPosX());
-        model.setPosY(req.getPosY());
-        model.setWidth(req.getWidth());
-        model.setHeight(req.getHeight());
+    @PutMapping("/{id}")
+    public ResponseEntity<PrateleiraResponse> updatePrat(
+            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @PathVariable Long id,
+            @RequestBody PrateleiraRequest req
+    ) {
+        storeAccessService.requireStoreAccess(sessionToken, req.getStoreId());
 
+        PrateleiraEntity update = prateleiraService.updatePrateleira(
+                id,
+                req.getStoreId(),
+                req.getName(),
+                req.getCorredorId(),
+                req.getPosX(),
+                req.getPosY(),
+                req.getWidth(),
+                req.getHeight(),
+                req.getVersion()
+        );
+        if (update == null) {
+            return ResponseEntity.notFound().build();
+        }
 
+        return ResponseEntity.ok(toResponse(update));
+    }
 
-        PrateleirasModel update = prateleiraService.updatePrateleira(model);
-        if (update == null) return ResponseEntity.notFound().build();
-
-        PrateleiraResponse r = new PrateleiraResponse();
-        r.setId(update.getId());
-        r.setName(update.getName());
-        r.setCorredorId(update.getCorredorId());
-        r.setPosX(update.getPosX());
-        r.setPosY(update.getPosY());
-        r.setWidth(update.getWidth());
-        r.setHeight(update.getHeight());
-
-        return ResponseEntity.ok(r);
+    private PrateleiraResponse toResponse(PrateleiraEntity entity) {
+        PrateleiraResponse response = new PrateleiraResponse();
+        response.setId(entity.getId());
+        response.setName(entity.getNome());
+        response.setCorredorId(entity.getCorredor().getId());
+        response.setStoreId(entity.getCorredor().getStore().getId());
+        response.setCorredorName(entity.getCorredor().getNome());
+        response.setPosX(entity.getPosX());
+        response.setPosY(entity.getPosY());
+        response.setWidth(entity.getWidth());
+        response.setHeight(entity.getHeight());
+        response.setVersion(entity.getVersion());
+        response.setPinned(entity.getPosX() != null && entity.getPosY() != null);
+        return response;
     }
 }

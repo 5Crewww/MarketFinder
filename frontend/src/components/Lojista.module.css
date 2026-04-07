@@ -1,196 +1,491 @@
-/* frontend/src/components/Lojista.module.css */
-
 .wrapper {
   width: 100vw;
   height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background-color: var(--bg-page);
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
 }
 
 .header {
-  background: var(--card-bg);
+  background: rgba(255, 255, 255, 0.96);
   border-bottom: 1px solid var(--card-border);
-  padding: 0 2rem; /* Removi padding vertical excessivo */
-  height: 70px;    /* Altura fixa para alinhar tudo bem */
+  padding: 0 2rem;
+  height: 72px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  z-index: 10;
-  flex-shrink: 0; /* Impede o header de encolher */
+  flex-shrink: 0;
+  backdrop-filter: blur(12px);
 }
 
-/* Novo estilo específico para o botão sair ficar alinhado */
+.pageTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--text-main);
+}
+
+.pageSubtitle {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
 .logoutBtn {
   background-color: var(--danger);
   color: white;
   border: none;
   padding: 8px 16px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  height: auto;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
+
 .logoutBtn:hover {
-  opacity: 0.9;
+  opacity: 0.92;
+  transform: translateY(-1px);
 }
 
 .body {
   display: flex;
-  flex: 1; /* Ocupa o resto da altura disponível */
+  flex: 1;
   overflow: hidden;
 }
 
 .sidebar {
-  width: 280px; /* Um pouco mais estreita para dar espaço ao mapa */
-  background: var(--card-bg);
+  width: 320px;
+  background: rgba(255, 255, 255, 0.92);
   border-right: 1px solid var(--card-border);
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  gap: 1rem;
+  padding: 1.25rem;
   overflow-y: auto;
-  z-index: 5;
 }
 
 .main {
   flex: 1;
-  background: #f1f5f9;
-  position: relative;
-  overflow-y: auto; /* Permite scroll se o conteúdo for grande */
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .tabs {
   display: flex;
-  flex-direction: column; /* Abas em pilha na sidebar ficam melhor */
-  gap: 8px;
-  margin-bottom: 20px;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 1rem;
   border-bottom: 1px solid var(--card-border);
-  padding-bottom: 15px;
 }
 
 .tabBtn {
   background: transparent;
   border: none;
-  padding: 12px;
+  padding: 0.8rem 0.9rem;
   text-align: left;
-  border-radius: 6px;
+  border-radius: 10px;
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .tabBtn:hover {
   background: #eff6ff;
-  color: var(--primary);
+  color: #1d4ed8;
 }
 
-.activeTab {
-  background: var(--primary);
-  color: white;
-  font-weight: 600;
-}
+.activeTab,
 .activeTab:hover {
-  background: var(--primary);
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
   color: white;
 }
 
-/* Estilos de Lista */
-.cardItem {
-  background: var(--card-bg);
+.panelSection {
+  background: white;
   border: 1px solid var(--card-border);
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  border-radius: 14px;
+  padding: 1rem;
   box-shadow: var(--shadow-sm);
 }
 
-/* --- CORREÇÃO DO MAPA --- */
-.mapContainer {
-  flex: 1; /* Força a ocupar toda a altura e largura do .main */
+.sectionTitle {
+  margin: 0 0 0.85rem;
+  font-size: 1rem;
+  color: var(--text-main);
+}
+
+.sectionHeading {
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+  color: var(--text-main);
+}
+
+.formStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.listBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.miniRow,
+.shelfRow,
+.cardItem {
+  background: white;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.miniRow,
+.shelfRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 0.95rem;
+}
+
+.cardItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+}
+
+.mutedText {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin: 0.35rem 0 0;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.linkDanger {
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.linkDanger:hover {
+  text-decoration: underline;
+}
+
+.secondaryBtn {
+  background: white;
+  color: var(--text-main);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 0.55rem 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.secondaryBtn:hover {
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.uploadLabel {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
   width: 100%;
-  height: 100%;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  padding: 0.95rem 1rem;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  color: var(--text-secondary);
+  font-weight: 700;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.uploadLabel:hover {
+  border-color: #2563eb;
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.mapContainer {
+  flex: 1;
+  min-height: 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #e5e7eb; /* Cinzento do fundo da área de mapa */
-  overflow: hidden; /* Corta imagens gigantes */
-  position: relative;
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.12), transparent 28%),
+    #e5e7eb;
+  overflow: auto;
 }
 
 .mapFrame {
   position: relative;
+  display: inline-flex;
+  border-radius: 18px;
+  overflow: hidden;
   background: white;
-  box-shadow: var(--shadow-lg);
-  border: 4px solid white;
-  max-width: 95%;
-  max-height: 90%;
-  display: flex; /* Remove espaços extra debaixo da imagem */
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  box-shadow: 0 30px 60px rgba(15, 23, 42, 0.14);
+  cursor: crosshair;
 }
 
 .mapImage {
-  max-width: 100%;
-  max-height: 85vh; /* Garante que a imagem não sai do ecrã */
-  object-fit: contain;
   display: block;
+  max-width: min(100%, 1100px);
+  max-height: calc(100vh - 180px);
+  object-fit: contain;
 }
 
-/* Notificações */
+.mapPlaceholder,
+.emptyPanel {
+  width: min(560px, 100%);
+  padding: 2rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px dashed #94a3b8;
+  border-radius: 20px;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-lg);
+}
+
 .notification {
   position: fixed;
-  top: 20px;
-  right: 20px;
-  padding: 12px 24px;
-  background: white;
-  border-left: 5px solid var(--primary);
-  border-radius: 4px;
+  top: 1.25rem;
+  right: 1.25rem;
+  max-width: 420px;
+  padding: 0.9rem 1.15rem;
+  border-radius: 12px;
+  color: white;
+  font-weight: 700;
   box-shadow: var(--shadow-lg);
-  font-weight: 600;
   z-index: 1000;
-  color: var(--text-main);
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn 0.25s ease-out;
 }
 
-.hiddenInput {
-  display: none; 
+.notificationSuccess {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
 }
 
-.uploadLabel {
-  display: inline-block;
-  background-color: white;
-  border: 2px dashed var(--card-border);
-  padding: 12px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  width: 100%;
-  text-align: center;
-  color: var(--text-secondary);
-  font-weight: 600;
-  transition: all 0.2s;
-  margin-top: 5px;
+.notificationError {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
 }
-
-.uploadLabel:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-  background-color: #eff6ff;
-}
-
 
 .pinElement {
-  user-select: none; 
-  -webkit-user-drag: none; 
+  position: absolute;
+  transform: translate(-50%, -105%);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: grab;
+  user-select: none;
+}
+
+.pinDragging {
+  cursor: grabbing;
+}
+
+.pinMarker {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border: 4px solid white;
+  box-shadow: 0 10px 18px rgba(220, 38, 38, 0.35);
+}
+
+.pinMarker::after {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 18px;
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  background: rgba(220, 38, 38, 0.75);
+}
+
+.pinLabel {
+  background: rgba(15, 23, 42, 0.92);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.45rem 0.6rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.contentPanel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.selectionBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.selectionToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.bulkActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.bulkLabel {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.bulkSelect {
+  min-width: 220px;
+  background: white;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+}
+
+.productRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.productMeta {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+}
+
+.shelfActions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.emptyState {
+  color: var(--text-secondary);
+  margin-top: 1.25rem;
 }
 
 @keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 1024px) {
+  .body {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    max-height: 46vh;
+    border-right: none;
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  .selectionBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bulkActions {
+    justify-content: stretch;
+  }
+
+  .bulkSelect {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .header {
+    padding: 0 1rem;
+  }
+
+  .sidebar,
+  .contentPanel,
+  .mapContainer {
+    padding: 1rem;
+  }
+
+  .cardItem,
+  .shelfRow,
+  .miniRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .shelfActions,
+  .bulkActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }

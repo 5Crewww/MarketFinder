@@ -1,10 +1,11 @@
 package com.paf.Api.Dto;
 
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.antlr.v4.runtime.misc.NotNull;
 
 @Getter
 @Setter
@@ -12,10 +13,12 @@ import org.antlr.v4.runtime.misc.NotNull;
 public class CorredorRequest {
 
     private Long id;
-    @SuppressWarnings("deprecation")
-    @NotNull
+
+    @Size(max = 120, message = "Nome do corredor demasiado longo.")
     private String nome;
-    @NotNull
+
+    @NotNull(message = "A loja é obrigatória.")
     private Long storeId;
+    private Long version;
 
 }

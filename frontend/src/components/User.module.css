@@ -16,16 +16,61 @@
 .title h1 { margin: 0; color: var(--text-main); font-size: 1.8rem; }
 .title p { margin: 5px 0 0 0; color: var(--text-secondary); }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.secondaryAction {
+  border: 1px solid var(--card-border);
+  background: white;
+  color: var(--text-main);
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* Área de Pesquisa */
 .searchSection {
-  text-align: center;
   margin-bottom: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.activeStoreCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #eff6ff 0%, #ecfeff 100%);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+}
+
+.activeStoreLabel {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #2563eb;
+}
+
+.activeStoreMeta {
+  color: #0f766e;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .searchForm {
   display: flex;
-  justify-content: center;
+  align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .searchInput {
@@ -48,6 +93,37 @@
 .btnSearch {
   border-radius: 50px;
   padding: 10px 30px;
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.stockToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.stockToggle input {
+  margin: 0;
+  width: auto;
+}
+
+.linkButton {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.storeInfo {
+  color: var(--text-secondary);
 }
 
 /* Grelha de Produtos */
@@ -83,6 +159,15 @@
 .productName { margin: 0; font-size: 1.2rem; color: var(--text-main); }
 .productDesc { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px; flex-grow: 1; }
 
+.metaList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
 .priceTag {
   background: #ecfdf5;
   color: var(--success);
@@ -108,3 +193,140 @@
 .locationButton:hover { background: #bae6fd; }
 
 .empty { text-align: center; color: var(--text-secondary); margin-top: 50px; }
+
+.pagination {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+.pageButton {
+  border: 1px solid var(--card-border);
+  background: white;
+  color: var(--text-main);
+  padding: 10px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.pageButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  z-index: 1000;
+}
+
+.modalCard {
+  width: min(900px, 100%);
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  padding: 20px;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  color: var(--text-main);
+}
+
+.modalHeader p {
+  margin-top: 4px;
+  color: var(--text-secondary);
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.mapCanvas {
+  position: relative;
+  background: #e2e8f0;
+  border-radius: 12px;
+  min-height: 360px;
+  overflow: hidden;
+}
+
+.mapImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.mapPin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.mapFallback {
+  min-height: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 24px;
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .headerActions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .secondaryAction {
+    width: 100%;
+  }
+
+  .activeStoreCard {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .searchForm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btnSearch {
+    width: 100%;
+  }
+
+  .pagination {
+    flex-direction: column;
+  }
+}

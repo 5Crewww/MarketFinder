@@ -3,24 +3,44 @@ import { apiService } from '../Services/api';
 import styles from './Login.module.css';
 
 const Login = ({ onLoginSuccess, onNavigateToRegister }) => {
-    const [nome, setNome] = useState('');
+    const [identificador, setIdentificador] = useState('');
     const [senha, setSenha] = useState('');
     const [erro, setErro] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const resolveErrorMessage = (err) => {
+        if (!err) {
+            return 'Nao foi possivel iniciar sessao.';
+        }
+        if (typeof err === 'string') {
+            return err;
+        }
+        if (err.message) {
+            return err.message;
+        }
+        return 'Nao foi possivel ligar ao servidor.';
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErro('');
         setLoading(true);
         try {
-            const user = await apiService.login(nome, senha);
+            const sanitizedIdentifier = identificador.trim();
+            if (!sanitizedIdentifier) {
+                setErro('Introduza o email ou nome de utilizador.');
+                setLoading(false);
+                return;
+            }
+
+            const user = await apiService.login(sanitizedIdentifier, senha);
             const userWithRole = {
                 ...user,
                 role: user.role || (user.nome.toLowerCase() === 'admin' ? 'admin' : 'user')
             };
             onLoginSuccess(userWithRole);
         } catch (err) {
-            setErro('Credenciais inválidas.');
+            setErro(resolveErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -36,8 +56,15 @@ const Login = ({ onLoginSuccess, onNavigateToRegister }) => {
                     {erro && <p className={styles.error}>{erro}</p>}
                     
                     <div style={{marginBottom: '15px'}}>
-                        <label className={styles.label}>Nome de Utilizador</label>
-                        <input className="inputGlobal" type="text" placeholder="Nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
+                        <label className={styles.label}>Email ou nome de utilizador</label>
+                        <input
+                            className="inputGlobal"
+                            type="text"
+                            placeholder="Email ou nome"
+                            value={identificador}
+                            onChange={(e) => setIdentificador(e.target.value)}
+                            required
+                        />
                     </div>
 
                     <div style={{marginBottom: '20px'}}>

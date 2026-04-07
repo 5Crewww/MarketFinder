@@ -15,6 +15,9 @@ public class UserModel {
     private String email;
     private String senha;
     private String role;
-
+    private Long storeId;
+    private String storeName;
+    private String sessionToken;
+    private String sessionExpiresAt;
 
 }

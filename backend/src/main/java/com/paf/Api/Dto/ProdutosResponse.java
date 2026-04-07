@@ -3,29 +3,27 @@ package com.paf.Api.Dto;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.antlr.v4.runtime.misc.NotNull;
+
+import java.math.BigDecimal;
 
 @Getter
 @Setter
 @NoArgsConstructor
 public class ProdutosResponse {
-
-@SuppressWarnings("deprecation")
-@NotNull
-private Long id;
-@SuppressWarnings("deprecation")
-@NotNull
-private String nome;
-@SuppressWarnings("deprecation")
-@NotNull
-private String descricao;
-@SuppressWarnings("deprecation")
-@NotNull
-private double preco;
-
-private Long idPrateleira;
-
-private Long idCorredor;
-
-
+    private Long id;
+    private Long productId;
+    private String nome;
+    private String descricao;
+    private String categoria;
+    private BigDecimal preco;
+    private Integer stock;
+    private Long storeId;
+    private String storeName;
+    private Long idPrateleira;
+    private String nomePrateleira;
+    private Double posXPrateleira;
+    private Double posYPrateleira;
+    private Long idCorredor;
+    private String nomeCorredor;
+    private Long version;
 }

@@ -16,6 +16,8 @@ public interface UserMapper {
         m.setEmail(req.getEmail());
         m.setSenha(req.getSenha());
         m.setRole(req.getRole());
+        m.setStoreId(req.getStoreId());
+        m.setStoreName(req.getStoreName());
         return m;
     }
 
@@ -27,6 +29,10 @@ public interface UserMapper {
         r.setEmail(model.getEmail());
         r.setSenha(model.getSenha());
         r.setRole(model.getRole());
+        r.setStoreId(model.getStoreId());
+        r.setStoreName(model.getStoreName());
+        r.setSessionToken(model.getSessionToken());
+        r.setSessionExpiresAt(model.getSessionExpiresAt());
         return r;
     }
 
@@ -39,6 +45,8 @@ public interface UserMapper {
         model.setEmail(req.getEmail());
         model.setSenha(req.getSenha());
         model.setRole(req.getRole());
+        model.setStoreId(req.getStoreId());
+        model.setStoreName(req.getStoreName());
     }
 
     // Model <-> Entity (novos métodos)
@@ -71,9 +79,17 @@ public interface UserMapper {
         if (model.getIdUser() != null) {
             entity.setId(model.getIdUser());
         }
-        entity.setNome(model.getNome());
-        entity.setEmail(model.getEmail());
-        entity.setSenha(model.getSenha());
-        entity.setRole(model.getRole());
+        if (model.getNome() != null) {
+            entity.setNome(model.getNome());
+        }
+        if (model.getEmail() != null) {
+            entity.setEmail(model.getEmail());
+        }
+        if (model.getSenha() != null) {
+            entity.setSenha(model.getSenha());
+        }
+        if (model.getRole() != null) {
+            entity.setRole(model.getRole());
+        }
     }
 }

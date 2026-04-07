@@ -1,11 +1,23 @@
-// java
 package com.paf.Infrastructure.Repository;
 
-import java.util.List;
-import org.springframework.data.jpa.repository.JpaRepository;
 import com.paf.Infrastructure.Entities.PrateleiraEntity;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface PrateleiraRepository extends JpaRepository<PrateleiraEntity, Long> {
-    // usa o nome do campo exatamente como na entidade (ex.: idCorredor)
-    List<PrateleiraEntity> findByIdCorredor(Long idCorredor);
+
+    @EntityGraph(attributePaths = {"corredor", "corredor.store"})
+    List<PrateleiraEntity> findByCorredorStoreIdOrderByNomeAsc(Long storeId);
+
+    @EntityGraph(attributePaths = {"corredor", "corredor.store"})
+    List<PrateleiraEntity> findByCorredorStoreIdAndNomeContainingIgnoreCaseOrderByNomeAsc(Long storeId, String nome);
+
+    @EntityGraph(attributePaths = {"corredor", "corredor.store"})
+    List<PrateleiraEntity> findByCorredorIdAndCorredorStoreIdOrderByNomeAsc(Long corredorId, Long storeId);
+
+    @EntityGraph(attributePaths = {"corredor", "corredor.store"})
+    Optional<PrateleiraEntity> findByIdAndCorredorStoreId(Long id, Long storeId);
 }

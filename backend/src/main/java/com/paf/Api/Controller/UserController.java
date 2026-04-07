@@ -1,120 +1,139 @@
 package com.paf.Api.Controller;
 
+import com.paf.Api.Dto.ApiErrorResponse;
+import com.paf.Api.Dto.LoginRequest;
 import com.paf.Api.Dto.UserRequest;
 import com.paf.Api.Dto.UserResponse;
+import com.paf.Domain.Mappers.UserMapper;
 import com.paf.Domain.Models.UserModel;
+import com.paf.Domain.Services.SessionService;
+import com.paf.Domain.Services.StoreAccessService;
 import com.paf.Domain.Services.UserService;
+import com.paf.Infrastructure.Entities.UserSessionEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-// 1. Mudei para "/User" (Maiúsculo) para bater certo com o teu api.js
-@RequestMapping("/user")
-// 2. ADICIONADO: Permite conexão do React
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@RequestMapping("/users")
 public class UserController {
 
+    private final UserService userService;
+    private final SessionService sessionService;
+    private final StoreAccessService storeAccessService;
+
     @Autowired
-    private UserService userService;
+    public UserController(UserService userService, SessionService sessionService, StoreAccessService storeAccessService) {
+        this.userService = userService;
+        this.sessionService = sessionService;
+        this.storeAccessService = storeAccessService;
+    }
 
-    @PostMapping("/Login")
-    public ResponseEntity<?> login(@RequestBody UserRequest request) {
-        System.out.println(">>> Tentativa de Login: " + request.getNome());
-
-        UserModel user = userService.GetByName(request.getNome());
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        UserModel user = userService.getByLoginIdentifier(request.getNome());
 
         if (user == null) {
-            System.out.println("❌ User não encontrado.");
-            return ResponseEntity.status(401).body("Utilizador não encontrado");
+            return unauthorized("Utilizador ou email não encontrado.");
         }
 
-      String senhaHash = userService.hashPass(request.getSenha());
-
-        if(!user.getSenha().equals(senhaHash)) {
-            System.out.println("senha errada");
-            return ResponseEntity.status(401).body("Senha incorreta");
+        if (!userService.matchesPassword(request.getSenha(), user.getSenha())) {
+            return unauthorized("Senha incorreta.");
         }
 
-
-        System.out.println("✅ Login Sucesso!");
-        UserResponse response = new UserResponse();
-        response.setIdUser(user.getIdUser());
-        response.setNome(user.getNome());
-        response.setEmail(user.getEmail());
-        response.setRole(user.getRole());
-
-        return ResponseEntity.ok(response);
+        UserSessionEntity session = sessionService.createSession(userService.requireUserEntity(user.getIdUser()));
+        user.setSessionToken(session.getSessionToken());
+        user.setSessionExpiresAt(session.getExpiresAt().toString());
+        return ResponseEntity.ok(UserMapper.toResponse(user));
     }
 
-
-    @GetMapping("/UserGet")
+    @GetMapping("/by-name")
     public ResponseEntity<UserResponse> getbyName(@RequestParam String nome) {
-        UserModel m = userService.GetByName(nome);
-        if (m == null) return ResponseEntity.notFound().build();
-        UserResponse r = new UserResponse();
-        r.setIdUser(m.getIdUser());
-        r.setNome(m.getNome());
-        r.setEmail(m.getEmail());
-        r.setSenha(m.getSenha());
-        return ResponseEntity.ok(r);
+        UserModel user = userService.GetByName(nome);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(UserMapper.toResponse(user));
     }
 
-    @PostMapping("/UserPost")
-    public ResponseEntity<UserResponse> createUser(@RequestBody UserRequest userRequest) {
-        UserModel model = new UserModel();
-        model.setNome(userRequest.getNome());
-        model.setEmail(userRequest.getEmail());
-        model.setSenha(userRequest.getSenha());
-        if(userRequest.getRole() == null ||  userRequest.getRole().isEmpty()) {
+    @PostMapping
+    public ResponseEntity<UserResponse> createUser(
+            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @RequestBody UserRequest userRequest
+    ) {
+        UserModel model = UserMapper.toModel(userRequest);
+
+        if (userRequest.getRole() == null || userRequest.getRole().isEmpty()) {
             model.setRole("user");
-        }else {
-            model.setRole(userRequest.getRole());
+        } else if (!"user".equalsIgnoreCase(userRequest.getRole())) {
+            if (userService.hasAdminUsers()) {
+                requireAdminSession(sessionToken);
+            }
         }
 
-        String result = userService.CreateUser(model);
-
-        UserResponse response = new UserResponse();
-        response.setIdUser(model.getIdUser());
-        response.setNome(model.getNome());
-        response.setEmail(model.getEmail());
-        response.setSenha(model.getSenha());
-        response.setRole(model.getRole());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        UserModel created = userService.CreateUser(model);
+        return ResponseEntity.status(HttpStatus.CREATED).body(UserMapper.toResponse(created));
     }
 
-    @DeleteMapping("/UserDelete")
-    public ResponseEntity<Void> deleteUser(@RequestParam Long id) {
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(
+            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @PathVariable Long id
+    ) {
+        requireAdminSession(sessionToken);
         boolean ok = userService.DeleteUser(id);
-        if (!ok) return ResponseEntity.notFound().build();
+        if (!ok) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/UserUpdt")
-    public ResponseEntity<UserResponse> updateUser(@RequestBody UserRequest userRequest) {
-        UserModel model = new UserModel();
-        model.setIdUser(userRequest.getIdUser());
-        model.setNome(userRequest.getNome());
-        model.setEmail(userRequest.getEmail());
-        model.setSenha(userRequest.getSenha());
+    @PutMapping("/{id}")
+    public ResponseEntity<UserResponse> updateUser(
+            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @PathVariable Long id,
+            @RequestBody UserRequest userRequest
+    ) {
+        if (userRequest.getRole() != null && !"user".equalsIgnoreCase(userRequest.getRole())) {
+            requireAdminSession(sessionToken);
+        }
+
+        UserModel model = UserMapper.toModel(userRequest);
+        model.setIdUser(id);
 
         UserModel updated = userService.UpdateUser(model);
-        if (updated == null) return ResponseEntity.notFound().build();
+        if (updated == null) {
+            return ResponseEntity.notFound().build();
+        }
 
-        UserResponse r = new UserResponse();
-        r.setIdUser(updated.getIdUser());
-        r.setNome(updated.getNome());
-        r.setEmail(updated.getEmail());
-        r.setSenha(updated.getSenha());
-
-        return ResponseEntity.ok(r);
+        return ResponseEntity.ok(UserMapper.toResponse(updated));
     }
 
-    @GetMapping("/GetAllUsers")
-    public ResponseEntity<Iterable<UserModel>> getAllUsers() {
+    @GetMapping
+    public ResponseEntity<Iterable<UserModel>> getAllUsers(
+            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken
+    ) {
+        requireAdminSession(sessionToken);
         Iterable<UserModel> users = userService.GetAllUsers();
         return ResponseEntity.ok(users);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestHeader(name = "X-Session-Token", required = false) String sessionToken) {
+        sessionService.invalidate(sessionToken);
+        return ResponseEntity.noContent().build();
+    }
+
+    private void requireAdminSession(String sessionToken) {
+        if (!"admin".equalsIgnoreCase(storeAccessService.requireSession(sessionToken).getUser().getRole())) {
+            throw new SecurityException("Apenas administradores podem executar esta operação.");
+        }
+    }
+
+    private ResponseEntity<ApiErrorResponse> unauthorized(String message) {
+        ApiErrorResponse response = new ApiErrorResponse();
+        response.setMessage(message);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 }

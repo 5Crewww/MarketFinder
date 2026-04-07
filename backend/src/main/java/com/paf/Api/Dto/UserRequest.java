@@ -1,29 +1,32 @@
 package com.paf.Api.Dto;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.antlr.v4.runtime.misc.NotNull;
 
 @Getter
 @Setter
 @NoArgsConstructor
-
 public class UserRequest {
-
-    @SuppressWarnings("deprecation")
-    @NotNull
     private Long idUser;
-    @SuppressWarnings("deprecation")
-    @NotNull
+
+    @Size(max = 120, message = "Nome demasiado longo.")
     private String nome;
-    @SuppressWarnings("deprecation")
-    @NotNull
+
+    @Email(message = "Email inválido.")
+    @Size(max = 180, message = "Email demasiado longo.")
     private String email;
-    @SuppressWarnings("deprecation")
-    @NotNull
+
+    @Size(min = 6, max = 120, message = "Senha inválida.")
     private String senha;
-    @NotNull
+
+    @Size(max = 40, message = "Role inválido.")
     private String role;
 
+    private Long storeId;
+
+    @Size(max = 160, message = "Nome da loja demasiado longo.")
+    private String storeName;
 }

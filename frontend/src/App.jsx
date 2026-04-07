@@ -4,6 +4,8 @@ import Register from './components/Registar';
 import Admin from './components/Admin';
 import Lojista from './components/Lojista'; 
 import User from './components/User'; 
+import { apiService } from './Services/api';
+import { StoreSelectionProvider } from './context/StoreSelectionContext';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -23,7 +25,12 @@ function App() {
     localStorage.setItem('currentUser', JSON.stringify(userData));
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await apiService.logout();
+    } catch (error) {
+      // O cliente limpa a sessão local mesmo que o backend já a tenha invalidado.
+    }
     localStorage.removeItem('currentUser');
     setUser(null);
     setShowRegister(false);
@@ -52,7 +59,11 @@ function App() {
       
     case 'user':
     default:
-      return <User user={user} onLogout={handleLogout} />;
+      return (
+        <StoreSelectionProvider user={user}>
+          <User user={user} onLogout={handleLogout} />
+        </StoreSelectionProvider>
+      );
   }
 }
 

@@ -2,124 +2,98 @@ package com.paf.Api.Controller;
 
 import com.paf.Api.Dto.CorredorRequest;
 import com.paf.Api.Dto.CorredorResponde;
-import com.paf.Domain.Mappers.CorredorMapper;
-import com.paf.Domain.Models.CorredorModel;
+import com.paf.Domain.Services.CorredorService;
+import com.paf.Domain.Services.StoreAccessService;
 import com.paf.Infrastructure.Entities.CorredorEntity;
-import com.paf.Infrastructure.Entities.PrateleiraEntity;
-import com.paf.Infrastructure.Repository.CorredorRepository;
-import com.paf.Infrastructure.Repository.PrateleiraRepository;
-import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/corredores")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true") // Adicionado para evitar bloqueios do React
 public class CorredorController {
 
-    @Autowired
-    private CorredorRepository corredorRepository;
+    private final CorredorService corredorService;
+    private final StoreAccessService storeAccessService;
 
     @Autowired
-    private PrateleiraRepository prateleiraRepository;
+    public CorredorController(CorredorService corredorService, StoreAccessService storeAccessService) {
+        this.corredorService = corredorService;
+        this.storeAccessService = storeAccessService;
+    }
 
-    @Setter
-    private Long currentUserId;
-
-    @GetMapping("/CGet")
-    public ResponseEntity<List<CorredorResponde>> getCorredores(@RequestParam(required = false) String nome){
-        List<CorredorEntity> entities;
-
-        if (nome == null || nome.isEmpty()) {
-            entities = corredorRepository.findAll();
-        } else {
-            Optional<CorredorEntity> opt = corredorRepository.findByNome(nome);
-            if (opt.isEmpty()) {
-                return ResponseEntity.ok(Collections.emptyList());
-            }
-            entities = List.of(opt.get());
-        }
-        List<CorredorResponde> responseList = entities.stream()
-                .map(e -> CorredorResponde.fromModel(CorredorMapper.toModel(e)))
-                .collect(Collectors.toList());
-
+    @GetMapping
+    public ResponseEntity<List<CorredorResponde>> getCorredores(
+            @RequestParam Long storeId,
+            @RequestParam(required = false) String nome
+    ) {
+        List<CorredorEntity> entities = corredorService.getCorredores(storeId, nome);
+        List<CorredorResponde> responseList = entities.stream().map(this::toResponse).toList();
         return ResponseEntity.ok(responseList);
     }
 
-    @PostMapping("/CPost")
-    public ResponseEntity<CorredorResponde> createCorredor (@RequestBody CorredorRequest request){
-        if (request == null || request.getNome() == null) return ResponseEntity.badRequest().build();
+    @PostMapping
+    public ResponseEntity<CorredorResponde> createCorredor(
+            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @RequestBody CorredorRequest request
+    ) {
+        storeAccessService.requireStoreAccess(sessionToken, request.getStoreId());
 
-        CorredorModel model = new CorredorModel();
-        model.setName(request.getNome());
-
-        if (this.currentUserId != null) {
-            model.setStoreId(this.currentUserId);
-        } else if (request.getStoreId() != null) {
-            model.setStoreId(request.getStoreId());
-        } else {
-            model.setStoreId(1L);
+        CorredorEntity saved = corredorService.createCorredor(request.getNome(), request.getStoreId());
+        if (saved == null) {
+            return ResponseEntity.notFound().build();
         }
 
-        CorredorEntity entity = CorredorMapper.toEntity(model);
-        CorredorEntity saved = corredorRepository.save(entity);
-        CorredorModel savedModel = CorredorMapper.toModel(saved);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(CorredorResponde.fromModel(savedModel));
+        ResponseEntity<CorredorResponde> body = ResponseEntity.status(HttpStatus.CREATED).body(toResponse(saved));
+        return body;
     }
 
-    @PutMapping("/CUpdt")
-    public ResponseEntity<CorredorResponde> updateCorredor (@RequestBody CorredorRequest request){
-        if (request == null || request.getId() == null) return ResponseEntity.badRequest().build();
+    @PutMapping("/{id}")
+    public ResponseEntity<CorredorResponde> updateCorredor(
+            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @PathVariable Long id,
+            @RequestBody CorredorRequest request
+    ) {
+        storeAccessService.requireStoreAccess(sessionToken, request.getStoreId());
 
-        Optional<CorredorEntity> opt = corredorRepository.findById(request.getId());
-        if (opt.isEmpty()) return ResponseEntity.notFound().build();
-
-        CorredorModel model = CorredorMapper.toModel(opt.get());
-
-        if (request.getNome() != null)
-            model.setName(request.getNome());
-
-        if (this.currentUserId != null) {
-            model.setStoreId(this.currentUserId);
+        CorredorEntity updated = corredorService.updateCorredor(id, request.getNome(), request.getStoreId(), request.getVersion());
+        if (updated == null) {
+            return ResponseEntity.notFound().build();
         }
 
-        CorredorEntity entity = opt.get();
-        CorredorMapper.updateEntityFromModel(entity, model);
-        CorredorEntity saved = corredorRepository.save(entity);
-        CorredorModel savedModel = CorredorMapper.toModel(saved);
-
-        return ResponseEntity.ok(CorredorResponde.fromModel(savedModel));
+        return ResponseEntity.ok(toResponse(updated));
     }
 
-    @DeleteMapping("/CDel/{id}")
-    public ResponseEntity<Void> deleteCorredor (@PathVariable Long id){
-        if (!corredorRepository.existsById(id)) return ResponseEntity.notFound().build();
-
-        List<PrateleiraEntity> shelves = prateleiraRepository.findByIdCorredor(id);
-        if (shelves != null && !shelves.isEmpty()) {
-            prateleiraRepository.deleteAll(shelves);
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCorredor(
+            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @PathVariable Long id,
+            @RequestParam Long storeId
+    ) {
+        storeAccessService.requireStoreAccess(sessionToken, storeId);
+        boolean deleted = corredorService.deleteCorredor(id, storeId);
+        if (!deleted) {
+            return ResponseEntity.notFound().build();
         }
-
-        corredorRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/CGetByStore/{storeId}")
+    @GetMapping("/store/{storeId}")
     public ResponseEntity<List<CorredorResponde>> getByStore(@PathVariable Long storeId) {
-        List<CorredorEntity> list = corredorRepository.findByIdLoja(storeId);
-        if (list == null || list.isEmpty()) return ResponseEntity.notFound().build(); // Ou retornar emptyList()
-
-        List<CorredorResponde> resp = list.stream().map(c -> {
-            return CorredorResponde.fromModel(CorredorMapper.toModel(c));
-        }).collect(Collectors.toList());
+        List<CorredorEntity> list = corredorService.getCorredores(storeId, null);
+        List<CorredorResponde> resp = list.stream().map(this::toResponse).toList();
         return ResponseEntity.ok(resp);
+    }
+
+    private CorredorResponde toResponse(CorredorEntity entity) {
+        CorredorResponde response = new CorredorResponde();
+        response.setId(entity.getId());
+        response.setName(entity.getNome());
+        response.setStoreId(entity.getStore().getId());
+        response.setVersion(entity.getVersion());
+        return response;
     }
 }

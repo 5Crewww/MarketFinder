@@ -18,7 +18,7 @@ const Admin = ({ onLogout }) => {
             setUsuarios(Array.isArray(data) ? data : []);
         } catch (err) { setErro('Erro ao carregar utilizadores.'); } finally { setLoading(false); }
     };
-
+/*bamo tirar una foto*/
     const handleCreateUser = async (e) => {
         e.preventDefault();
         try {
