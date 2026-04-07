@@ -17,7 +17,7 @@ const getSessionToken = () => {
 const withAuthHeaders = (headers = {}) => {
     const sessionToken = getSessionToken();
     return sessionToken
-        ? { ...headers, 'X-Session-Token': sessionToken }
+        ? { ...headers, Authorization: `Bearer ${sessionToken}` }
         : headers;
 };
 

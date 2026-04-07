@@ -5,12 +5,17 @@ import com.paf.Api.Dto.PrateleiraResponse;
 import com.paf.Domain.Services.PrateleiraService;
 import com.paf.Domain.Services.StoreAccessService;
 import com.paf.Infrastructure.Entities.PrateleiraEntity;
+import com.paf.Util.InputSanitizer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+import static org.springframework.http.ResponseEntity.*;
 
 @RestController
 @RequestMapping("/prateleiras")
@@ -42,18 +47,18 @@ public class PrateleiraController {
         }
 
         List<PrateleiraResponse> response = entities.stream().map(this::toResponse).toList();
-        return ResponseEntity.ok(response);
+        return ok(response);
     }
 
     @PostMapping
     public ResponseEntity<PrateleiraResponse> createPrateleiras(
-            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
-            @RequestBody PrateleiraRequest req
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @Valid @RequestBody PrateleiraRequest req
     ) {
-        storeAccessService.requireStoreAccess(sessionToken, req.getStoreId());
+        storeAccessService.requireStoreAccess(authorizationHeader, req.getStoreId());
 
         PrateleiraEntity created = prateleiraService.createPrateleira(
-                req.getName(),
+                sanitizeText(req.getName()),
                 req.getCorredorId(),
                 req.getStoreId(),
                 req.getPosX(),
@@ -62,39 +67,39 @@ public class PrateleiraController {
                 req.getHeight()
         );
         if (created == null) {
-            return ResponseEntity.notFound().build();
+            return notFound().build();
         }
 
-        ResponseEntity<PrateleiraResponse> body = ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
+        ResponseEntity<PrateleiraResponse> body = status(HttpStatus.CREATED).body(toResponse(created));
         return body;
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePrateleiras(
-            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
             @PathVariable Long id,
             @RequestParam Long storeId
     ) {
-        storeAccessService.requireStoreAccess(sessionToken, storeId);
+        storeAccessService.requireStoreAccess(authorizationHeader, storeId);
         boolean ok = prateleiraService.deletePrateleira(id, storeId);
         if (!ok) {
-            return ResponseEntity.notFound().build();
+            return notFound().build();
         }
-        return ResponseEntity.noContent().build();
+        return noContent().build();
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<PrateleiraResponse> updatePrat(
-            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
             @PathVariable Long id,
-            @RequestBody PrateleiraRequest req
+            @Valid @RequestBody PrateleiraRequest req
     ) {
-        storeAccessService.requireStoreAccess(sessionToken, req.getStoreId());
+        storeAccessService.requireStoreAccess(authorizationHeader, req.getStoreId());
 
         PrateleiraEntity update = prateleiraService.updatePrateleira(
                 id,
                 req.getStoreId(),
-                req.getName(),
+                sanitizeText(req.getName()),
                 req.getCorredorId(),
                 req.getPosX(),
                 req.getPosY(),
@@ -103,19 +108,19 @@ public class PrateleiraController {
                 req.getVersion()
         );
         if (update == null) {
-            return ResponseEntity.notFound().build();
+            return notFound().build();
         }
 
-        return ResponseEntity.ok(toResponse(update));
+        return ok(toResponse(update));
     }
 
     private PrateleiraResponse toResponse(PrateleiraEntity entity) {
         PrateleiraResponse response = new PrateleiraResponse();
         response.setId(entity.getId());
-        response.setName(entity.getNome());
+        response.setName(sanitizeText(entity.getNome()));
         response.setCorredorId(entity.getCorredor().getId());
         response.setStoreId(entity.getCorredor().getStore().getId());
-        response.setCorredorName(entity.getCorredor().getNome());
+        response.setCorredorName(sanitizeText(entity.getCorredor().getNome()));
         response.setPosX(entity.getPosX());
         response.setPosY(entity.getPosY());
         response.setWidth(entity.getWidth());
@@ -123,5 +128,9 @@ public class PrateleiraController {
         response.setVersion(entity.getVersion());
         response.setPinned(entity.getPosX() != null && entity.getPosY() != null);
         return response;
+    }
+
+    private String sanitizeText(String value) {
+        return InputSanitizer.sanitizeText(value, 120);
     }
 }

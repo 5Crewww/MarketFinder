@@ -6,10 +6,13 @@ import com.paf.Domain.Services.StoreAccessService;
 import com.paf.Domain.Services.StoreService;
 import com.paf.Infrastructure.Entities.StoreEntity;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+import static org.springframework.http.ResponseEntity.*;
 
 @RestController
 @RequestMapping("/stores")
@@ -26,12 +29,12 @@ public class StoreController {
 
     @GetMapping
     public ResponseEntity<List<StoreResponse>> getStores() {
-        return ResponseEntity.ok(buildStoreListResponse());
+        return ok(buildStoreListResponse());
     }
 
     @GetMapping("/public")
     public ResponseEntity<List<StoreResponse>> getPublicStores() {
-        return ResponseEntity.ok(buildStoreListResponse());
+        return ok(buildStoreListResponse());
     }
 
     @GetMapping("/{id}")
@@ -46,16 +49,16 @@ public class StoreController {
 
     @PutMapping("/{id}/layout")
     public ResponseEntity<StoreResponse> updateLayout(
-            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
             @PathVariable Long id,
             @RequestBody StoreRequest request
     ) {
-        storeAccessService.requireStoreAccess(sessionToken, id);
+        storeAccessService.requireStoreAccess(authorizationHeader, id);
         StoreEntity updated = storeService.updateLayout(id, request.getLayoutImageUrl(), request.getVersion());
         if (updated == null) {
-            return ResponseEntity.notFound().build();
+            return notFound().build();
         }
-        return ResponseEntity.ok(toResponse(updated));
+        return ok(toResponse(updated));
     }
 
     private StoreResponse toResponse(StoreEntity store) {
@@ -77,8 +80,8 @@ public class StoreController {
     private ResponseEntity<StoreResponse> buildSingleStoreResponse(Long id) {
         StoreEntity store = storeService.getById(id);
         if (store == null) {
-            return ResponseEntity.notFound().build();
+            return notFound().build();
         }
-        return ResponseEntity.ok(toResponse(store));
+        return ok(toResponse(store));
     }
 }

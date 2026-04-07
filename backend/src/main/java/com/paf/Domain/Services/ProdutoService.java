@@ -432,7 +432,7 @@ public class ProdutoService {
     }
 
     private void validateVersion(Long currentVersion, Long requestVersion) {
-        if (requestVersion == null || currentVersion == null || !requestVersion.equals(currentVersion)) {
+        if (requestVersion == null || currentVersion == null || !currentVersion.equals(requestVersion)) {
             throw new OptimisticLockingFailureException("Um dos produtos foi alterado por outro utilizador.");
         }
     }

@@ -17,8 +17,11 @@ public class SecurityHeadersFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         response.setHeader("X-Content-Type-Options", "nosniff");
         response.setHeader("X-Frame-Options", "DENY");
+        //noinspection UastIncorrectHttpHeaderInspection
         response.setHeader("Referrer-Policy", "no-referrer");
+        //noinspection UastIncorrectHttpHeaderInspection
         response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+        //noinspection UastIncorrectHttpHeaderInspection
         response.setHeader("Content-Security-Policy",
                 "default-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; "
                         + "img-src 'self' data: http: https:; font-src 'self' data: https://fonts.gstatic.com; "

@@ -16,6 +16,7 @@ import java.util.UUID;
 public class SessionService {
 
     private static final Duration SESSION_TTL = Duration.ofHours(8);
+    private static final String BEARER_PREFIX = "Bearer ";
 
     private final UserSessionRepository userSessionRepository;
 
@@ -33,7 +34,8 @@ public class SessionService {
         return userSessionRepository.save(session);
     }
 
-    public UserSessionEntity requireActiveSession(String sessionToken) {
+    public UserSessionEntity requireActiveSession(String sessionTokenOrAuthorizationHeader) {
+        String sessionToken = normalizeSessionToken(sessionTokenOrAuthorizationHeader);
         if (sessionToken == null || sessionToken.isBlank()) {
             throw new SecurityException("Sessão inválida ou expirada.");
         }
@@ -46,7 +48,8 @@ public class SessionService {
         return session;
     }
 
-    public void invalidate(String sessionToken) {
+    public void invalidate(String sessionTokenOrAuthorizationHeader) {
+        String sessionToken = normalizeSessionToken(sessionTokenOrAuthorizationHeader);
         if (sessionToken == null || sessionToken.isBlank()) {
             return;
         }
@@ -64,5 +67,23 @@ public class SessionService {
     )
     public void cleanupExpiredSessions() {
         userSessionRepository.deleteByExpiresAtBeforeOrActiveFalse(Instant.now());
+    }
+
+    private String normalizeSessionToken(String sessionTokenOrAuthorizationHeader) {
+        if (sessionTokenOrAuthorizationHeader == null) {
+            return null;
+        }
+
+        String normalizedValue = sessionTokenOrAuthorizationHeader.trim();
+        if (normalizedValue.isBlank()) {
+            return null;
+        }
+
+        if (normalizedValue.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
+            String bearerToken = normalizedValue.substring(BEARER_PREFIX.length()).trim();
+            return bearerToken.isBlank() ? null : bearerToken;
+        }
+
+        return normalizedValue;
     }
 }

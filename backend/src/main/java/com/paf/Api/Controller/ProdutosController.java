@@ -10,6 +10,7 @@ import com.paf.Domain.Services.StoreAccessService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+
+import static org.springframework.http.ResponseEntity.*;
 
 @RestController
 @RequestMapping("/produtos")
@@ -61,17 +64,17 @@ public class ProdutosController {
 
     @GetMapping("/categorias")
     public ResponseEntity<List<String>> getCategorias(@RequestParam @Positive Long storeId) {
-        return ResponseEntity.ok(produtoService.getCategorias(storeId));
+        return ok(produtoService.getCategorias(storeId));
     }
 
     @GetMapping("/public/categorias")
     public ResponseEntity<List<String>> getCategoriasPublic(@RequestParam @Positive Long storeId) {
-        return ResponseEntity.ok(produtoService.getCategorias(storeId));
+        return ok(produtoService.getCategorias(storeId));
     }
 
     @PostMapping
     public ResponseEntity<?> createProd(
-            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
             @Valid @RequestBody ProdutosRequest req
     ) {
         if (req == null) {
@@ -90,46 +93,46 @@ public class ProdutosController {
             return badRequest("Informe o nome do produto ou um productId valido.");
         }
 
-        storeAccessService.requireStoreAccess(sessionToken, req.getStoreId());
+        storeAccessService.requireStoreAccess(authorizationHeader, req.getStoreId());
 
         ProdutosResponse created = produtoService.createProduto(req);
         if (created == null) {
             return badRequest("Produto invalido para a loja selecionada.");
         }
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        return status(HttpStatus.CREATED).body(created);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProd(
-            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
             @PathVariable @Positive Long id,
             @RequestParam(name = "storeId") @Positive Long storeId
     ) {
-        storeAccessService.requireStoreAccess(sessionToken, storeId);
+        storeAccessService.requireStoreAccess(authorizationHeader, storeId);
         boolean ok = produtoService.deleteProduto(id, storeId);
-        if (!ok) return ResponseEntity.notFound().build();
-        return ResponseEntity.noContent().build();
+        if (!ok) return notFound().build();
+        return noContent().build();
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ProdutosResponse> updateProd(
-            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
             @PathVariable @Positive Long id,
             @Valid @RequestBody ProdutosRequest req
     ) {
-        storeAccessService.requireStoreAccess(sessionToken, req.getStoreId());
+        storeAccessService.requireStoreAccess(authorizationHeader, req.getStoreId());
         ProdutosResponse updated = produtoService.updateProduto(id, req);
-        if (updated == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(updated);
+        if (updated == null) return notFound().build();
+        return ok(updated);
     }
 
     @PutMapping("/batch/move")
     public ResponseEntity<List<ProdutosResponse>> moveBatch(
-            @RequestHeader(name = "X-Session-Token", required = false) String sessionToken,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
             @Valid @RequestBody BatchMoveProductsRequest request
     ) {
-        storeAccessService.requireStoreAccess(sessionToken, request.getStoreId());
-        return ResponseEntity.ok(produtoService.moveProdutosEmLote(request.getStoreId(), request.getTargetShelfId(), request.getItems()));
+        storeAccessService.requireStoreAccess(authorizationHeader, request.getStoreId());
+        return ok(produtoService.moveProdutosEmLote(request.getStoreId(), request.getTargetShelfId(), request.getItems()));
     }
 
     private ResponseEntity<ApiErrorResponse> badRequest(String message) {
@@ -152,6 +155,6 @@ public class ProdutosController {
             int page,
             int size
     ) {
-        return ResponseEntity.ok(produtoService.search(storeId, nome, categoria, precoMin, precoMax, inStock, page, size));
+        return ok(produtoService.search(storeId, nome, categoria, precoMin, precoMax, inStock, page, size));
     }
 }

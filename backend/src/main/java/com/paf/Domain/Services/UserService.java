@@ -138,10 +138,8 @@ public class UserService {
     public Iterable<UserModel> GetAllUsers() {
         List<UserEntity> entities = userRepository.findAll();
         List<UserModel> result = new ArrayList<>();
-        if (entities != null) {
-            for (UserEntity e : entities) {
-                result.add(enrichWithStore(e));
-            }
+        for (UserEntity entity : entities) {
+            result.add(enrichWithStore(entity));
         }
         return result;
     }

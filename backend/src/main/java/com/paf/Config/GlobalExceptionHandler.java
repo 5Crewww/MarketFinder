@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.List;
 
+import static org.springframework.http.ResponseEntity.badRequest;
+import static org.springframework.http.ResponseEntity.status;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -23,7 +26,7 @@ public class GlobalExceptionHandler {
         response.setDetails(exception.getBindingResult().getFieldErrors().stream()
                 .map(this::toFieldMessage)
                 .toList());
-        return ResponseEntity.badRequest().body(response);
+        return badRequest().body(response);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -33,7 +36,7 @@ public class GlobalExceptionHandler {
         response.setDetails(exception.getConstraintViolations().stream()
                 .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
                 .toList());
-        return ResponseEntity.badRequest().body(response);
+        return badRequest().body(response);
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
@@ -41,31 +44,32 @@ public class GlobalExceptionHandler {
         ApiErrorResponse response = new ApiErrorResponse();
         response.setMessage("Os dados foram alterados por outro utilizador. Atualize o painel e tente novamente.");
         response.setDetails(List.of(exception.getMessage()));
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+        return status(HttpStatus.CONFLICT).body(response);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiErrorResponse> handleDataIntegrity(DataIntegrityViolationException exception) {
         ApiErrorResponse response = new ApiErrorResponse();
         response.setMessage("Nao foi possivel guardar o registo devido a uma restricao de integridade no banco de dados.");
-        if (exception.getMostSpecificCause() != null && exception.getMostSpecificCause().getMessage() != null) {
-            response.setDetails(List.of(exception.getMostSpecificCause().getMessage()));
+        String details = exception.getMostSpecificCause().getMessage();
+        if (details != null && !details.isBlank()) {
+            response.setDetails(List.of(details));
         }
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+        return status(HttpStatus.CONFLICT).body(response);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiErrorResponse> handleIllegalArgument(IllegalArgumentException exception) {
         ApiErrorResponse response = new ApiErrorResponse();
         response.setMessage(exception.getMessage());
-        return ResponseEntity.badRequest().body(response);
+        return badRequest().body(response);
     }
 
     @ExceptionHandler(SecurityException.class)
     public ResponseEntity<ApiErrorResponse> handleSecurity(SecurityException exception) {
         ApiErrorResponse response = new ApiErrorResponse();
         response.setMessage(exception.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        return status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
     private String toFieldMessage(FieldError error) {
