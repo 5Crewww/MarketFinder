@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { apiService } from '../Services/api';
 import styles from './Login.module.css';
 
-const Login = ({ onLoginSuccess, onNavigateToRegister }) => {
+const Login = ({ onLoginSuccess, onNavigateToRegister, sessionMessage }) => {
     const [identificador, setIdentificador] = useState('');
     const [senha, setSenha] = useState('');
     const [erro, setErro] = useState('');
@@ -53,6 +53,9 @@ const Login = ({ onLoginSuccess, onNavigateToRegister }) => {
                 <h1 className={styles.title}>Supermarket Finder</h1>
                 
                 <form onSubmit={handleSubmit}>
+                    {sessionMessage && (
+                        <p className={styles.sessionWarning}>{sessionMessage}</p>
+                    )}
                     {erro && <p className={styles.error}>{erro}</p>}
                     
                     <div style={{marginBottom: '15px'}}>

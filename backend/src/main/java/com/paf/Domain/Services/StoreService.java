@@ -29,6 +29,27 @@ public class StoreService {
     }
 
     @Transactional
+    public StoreEntity updateDetails(Long storeId, String name, String location, String description, Long version) {
+        StoreEntity store = storeRepository.findById(storeId).orElse(null);
+        if (store == null) {
+            return null;
+        }
+        if (version != null && store.getVersion() != null && !version.equals(store.getVersion())) {
+            throw new OptimisticLockingFailureException("Dados da loja desatualizados.");
+        }
+
+        String sanitizedName = InputSanitizer.sanitizeText(name, 160);
+        if (sanitizedName == null || sanitizedName.isBlank()) {
+            throw new IllegalArgumentException("Nome da loja invalido.");
+        }
+
+        store.setName(sanitizedName);
+        store.setLocation(InputSanitizer.sanitizeText(location, 255));
+        store.setDescription(InputSanitizer.sanitizeText(description, 1000));
+        return storeRepository.saveAndFlush(store);
+    }
+
+    @Transactional
     public StoreEntity updateLayout(Long storeId, String layoutImageUrl, Long version) {
         StoreEntity store = storeRepository.findById(storeId).orElse(null);
         if (store == null) {
@@ -38,6 +59,17 @@ public class StoreService {
             throw new OptimisticLockingFailureException("Mapa da loja desatualizado.");
         }
         store.setLayoutImageUrl(InputSanitizer.sanitizeLayoutImage(layoutImageUrl));
-        return storeRepository.save(store);
+        return storeRepository.saveAndFlush(store);
+    }
+
+    @Transactional
+    public StoreEntity uploadLogo(Long storeId, byte[] logoData, String contentType) {
+        StoreEntity store = storeRepository.findById(storeId).orElse(null);
+        if (store == null) {
+            return null;
+        }
+        store.setLogoData(logoData);
+        store.setLogoContentType(contentType);
+        return storeRepository.saveAndFlush(store);
     }
 }

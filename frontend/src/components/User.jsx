@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { apiService } from '../Services/api';
 import styles from './User.module.css';
 import ClientStoreSelector from './ClientStoreSelector';
+import ShoppingList from './ShoppingList';
+import MinhaLista from './MinhaLista';
+import { useGlobalShoppingList } from '../hooks/useGlobalShoppingList';
 import { useStoreSelection } from '../context/StoreSelectionContext';
 
 const PAGE_SIZE = 12;
@@ -37,6 +40,8 @@ const User = ({ user, onLogout }) => {
     const [filtros, setFiltros] = useState({ ...initialFilters });
     const [pagination, setPagination] = useState({ ...initialPagination });
     const [mapaProduto, setMapaProduto] = useState(null);
+    const [activeView, setActiveView] = useState('catalogo');
+    const [globalTab, setGlobalTab] = useState('lojas');
     const [storesLoading, setStoresLoading] = useState(true);
     const [catalogLoading, setCatalogLoading] = useState(false);
     const [storesError, setStoresError] = useState('');
@@ -46,6 +51,14 @@ const User = ({ user, onLogout }) => {
         loading: false,
         message: '',
     });
+    const [matchState, setMatchState] = useState({
+        results: [],
+        loading: false,
+        error: '',
+        active: false,
+    });
+
+    const { parsedItems: globalListItems } = useGlobalShoppingList();
 
     useEffect(() => {
         void carregarStores();
@@ -58,6 +71,7 @@ const User = ({ user, onLogout }) => {
             setProdutos([]);
             setPagination({ ...initialPagination });
             setErro('');
+            setActiveView('catalogo');
             setMapaStatus({
                 ready: false,
                 loading: false,
@@ -85,6 +99,7 @@ const User = ({ user, onLogout }) => {
                 setPagination({ ...initialPagination });
             }
         } catch (err) {
+            console.error('Erro ao carregar lojas publicas:', err);
             setStoresError('Erro ao carregar lojas disponíveis.');
         } finally {
             setStoresLoading(false);
@@ -138,6 +153,7 @@ const User = ({ user, onLogout }) => {
             });
 
         } catch (err) {
+            console.error('Erro ao carregar contexto da loja:', err);
             setMapaStatus({
                 ready: false,
                 loading: false,
@@ -181,6 +197,7 @@ const User = ({ user, onLogout }) => {
 
             applyProductsResponse(response);
         } catch (err) {
+            console.error('Erro ao buscar produtos publicos:', err);
             setErro('Erro ao buscar produtos.');
         } finally {
             setCatalogLoading(false);
@@ -207,6 +224,7 @@ const User = ({ user, onLogout }) => {
         setFiltros({ ...initialFilters });
         setPagination({ ...initialPagination });
         setMapaProduto(null);
+        setActiveView('catalogo');
         setErro('');
         setMapaStatus({
             ready: false,
@@ -221,7 +239,9 @@ const User = ({ user, onLogout }) => {
         setFiltros({ ...initialFilters });
         setPagination({ ...initialPagination });
         setMapaProduto(null);
+        setActiveView('catalogo');
         setErro('');
+        setMatchState({ results: [], loading: false, error: '', active: false });
         setMapaStatus({
             ready: false,
             loading: false,
@@ -230,27 +250,96 @@ const User = ({ user, onLogout }) => {
         clearStoreSelection();
     };
 
+    const handleMatchList = async () => {
+        if (!selectedStoreId || globalListItems.length === 0) return;
+        setMatchState({ results: [], loading: true, error: '', active: false });
+        try {
+            const results = await apiService.matchList(selectedStoreId, globalListItems);
+            setMatchState({
+                results: Array.isArray(results) ? results : [],
+                loading: false,
+                error: '',
+                active: true,
+            });
+        } catch (err) {
+            setMatchState({
+                results: [],
+                loading: false,
+                error: typeof err === 'string' ? err : 'Nao foi possivel filtrar os produtos.',
+                active: false,
+            });
+        }
+    };
+
+    const renderGlobalNav = () => (
+        <nav className={styles.globalNav}>
+            <div className={styles.globalNavContent}>
+                <div className={styles.navTabs}>
+                    <button
+                        className={globalTab === 'lojas' ? styles.navTabActive : styles.navTab}
+                        onClick={() => setGlobalTab('lojas')}
+                    >
+                        🏪 As Minhas Lojas
+                    </button>
+                    <button
+                        className={globalTab === 'minha-lista' ? styles.navTabActive : styles.navTab}
+                        onClick={() => setGlobalTab('minha-lista')}
+                    >
+                        📝 A Minha Lista
+                    </button>
+                </div>
+                {globalTab === 'minha-lista' && (
+                    <button onClick={onLogout} className={styles.navLogout}>Sair</button>
+                )}
+            </div>
+        </nav>
+    );
+
+    if (globalTab === 'minha-lista') {
+        return (
+            <div className={styles.appWrapper}>
+                {renderGlobalNav()}
+                <MinhaLista />
+            </div>
+        );
+    }
+
     if (!selectedStoreId) {
         return (
-            <ClientStoreSelector
-                stores={stores}
-                loading={storesLoading}
-                error={storesError}
-                onSelectStore={handleSelectStore}
-                onRetry={() => void carregarStores()}
-                onLogout={onLogout}
-            />
+            <div className={styles.appWrapper}>
+                {renderGlobalNav()}
+                <ClientStoreSelector
+                    stores={stores}
+                    loading={storesLoading}
+                    error={storesError}
+                    onSelectStore={handleSelectStore}
+                    onRetry={() => void carregarStores()}
+                    onLogout={onLogout}
+                />
+            </div>
         );
     }
 
     return (
-        <div className={styles.container}>
+        <div className={styles.appWrapper}>
+            {renderGlobalNav()}
+            <div className={styles.container}>
             <header className={styles.header}>
                 <div className={styles.title}>
                     <h1>Ola, {user.nome}!</h1>
                     <p>Pesquise produtos, visualize o mapa e trabalhe sempre com a loja escolhida.</p>
                 </div>
                 <div className={styles.headerActions}>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setMapaProduto(null);
+                            setActiveView((prev) => (prev === 'shopping-list' ? 'catalogo' : 'shopping-list'));
+                        }}
+                        className={activeView === 'shopping-list' ? styles.primaryAction : styles.secondaryAction}
+                    >
+                        {activeView === 'shopping-list' ? 'Voltar ao catalogo' : 'Criar Lista de Compras'}
+                    </button>
                     <button type="button" onClick={handleChangeStore} className={styles.secondaryAction}>
                         Trocar loja
                     </button>
@@ -260,152 +349,266 @@ const User = ({ user, onLogout }) => {
                 </div>
             </header>
 
-            <section className={styles.searchSection}>
-                <div className={styles.activeStoreCard}>
-                    <div>
-                        <p className={styles.activeStoreLabel}>Loja selecionada</p>
-                        <strong>{selectedStoreDetails?.name || selectedStore?.name}</strong>
-                    </div>
-                    <span className={styles.activeStoreMeta}>
-                        {mapaStatus.loading
-                            ? 'A validar mapa'
-                            : mapaStatus.ready
-                                ? 'Mapa configurado'
-                                : 'Mapa pendente'}
-                    </span>
-                </div>
-
-                <div className={styles.filterGrid}>
-                    <select
-                        className={styles.searchInput}
-                        value={filtros.categoria}
-                        onChange={(e) => setFiltros((prev) => ({ ...prev, categoria: e.target.value }))}
-                        disabled={!selectedStoreId}
-                    >
-                        <option value="">Todas as categorias</option>
-                        {categorias.map((categoria) => (
-                            <option key={categoria} value={categoria}>
-                                {categoria}
-                            </option>
-                        ))}
-                    </select>
-
-                    <input
-                        className={styles.searchInput}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="Preco minimo"
-                        value={filtros.precoMin}
-                        onChange={(e) => setFiltros((prev) => ({ ...prev, precoMin: e.target.value }))}
-                    />
-
-                    <input
-                        className={styles.searchInput}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="Preco maximo"
-                        value={filtros.precoMax}
-                        onChange={(e) => setFiltros((prev) => ({ ...prev, precoMax: e.target.value }))}
-                    />
-                </div>
-
-                <form onSubmit={handleSubmitPesquisa} className={styles.searchForm}>
-                    <input
-                        className={styles.searchInput}
-                        type="text"
-                        placeholder="O que procura hoje? Ex: arroz"
-                        value={termoPesquisa}
-                        onChange={(e) => setTermoPesquisa(e.target.value)}
-                    />
-                    <label className={styles.stockToggle}>
-                        <input
-                            type="checkbox"
-                            checked={filtros.inStock}
-                            onChange={(e) => setFiltros((prev) => ({ ...prev, inStock: e.target.checked }))}
-                        />
-                        Apenas em stock
-                    </label>
-                    <button
-                        type="submit"
-                        className={`btnPrimary ${styles.btnSearch}`}
-                        disabled={!selectedStoreId || mapaStatus.loading}
-                    >
-                        Buscar
-                    </button>
-                    <button type="button" className={styles.linkButton} onClick={limparFiltros}>
-                        Limpar
-                    </button>
-                </form>
-
-                {(selectedStoreDetails || selectedStore) && (
-                    <>
-                        <p className={styles.storeInfo}>
-                            Loja ativa: <strong>{selectedStoreDetails?.name || selectedStore?.name}</strong> • {pagination.totalElements} resultados
-                        </p>
-                        {!mapaStatus.ready && mapaStatus.message && (
-                            <p className={styles.storeInfo}>{mapaStatus.message}</p>
-                        )}
-                    </>
-                )}
-            </section>
-
-            {catalogLoading ? (
-                <p className={styles.empty}>A carregar catalogo...</p>
-            ) : erro ? (
-                <p className={styles.empty}>{erro}</p>
-            ) : produtos.length === 0 ? (
-                <div className={styles.empty}>
-                    <p>Nenhum produto encontrado para os filtros aplicados.</p>
-                </div>
+            {activeView === 'shopping-list' ? (
+                <ShoppingList
+                    storeId={selectedStoreId}
+                    storeName={selectedStoreDetails?.name || selectedStore?.name}
+                    layoutImageUrl={selectedStoreDetails?.layoutImageUrl || selectedStore?.layoutImageUrl || null}
+                />
             ) : (
                 <>
-                    <div className={styles.grid}>
-                        {produtos.map((prod) => (
-                            <div key={prod.id} className={styles.card}>
-                                <div className={styles.cardHeader}>
-                                    <h3 className={styles.productName}>{prod.nome}</h3>
-                                    <span className={styles.priceTag}>{prod.preco} €</span>
-                                </div>
-                                <p className={styles.productDesc}>
-                                    {prod.descricao || 'Sem descricao disponivel.'}
-                                </p>
-                                <div className={styles.metaList}>
-                                    <span>{prod.categoria || 'Sem categoria'}</span>
-                                    <span>Stock: {prod.stock}</span>
-                                    <span>{prod.nomeCorredor} • {prod.nomePrateleira}</span>
-                                </div>
-                                <div className={styles.cardFooter}>
-                                    <button className={styles.locationButton} onClick={() => setMapaProduto(prod)}>
-                                        Ver no mapa
-                                    </button>
-                                </div>
+                    <section className={styles.searchSection}>
+                        <div className={styles.activeStoreCard}>
+                            <div>
+                                <p className={styles.activeStoreLabel}>Loja selecionada</p>
+                                <strong>{selectedStoreDetails?.name || selectedStore?.name}</strong>
                             </div>
-                        ))}
-                    </div>
+                            <span className={styles.activeStoreMeta}>
+                                {mapaStatus.loading
+                                    ? 'A validar mapa'
+                                    : mapaStatus.ready
+                                        ? 'Mapa configurado'
+                                        : 'Mapa pendente'}
+                            </span>
+                        </div>
 
-                    <div className={styles.pagination}>
-                        <button
-                            type="button"
-                            className={styles.pageButton}
-                            disabled={pagination.page === 0}
-                            onClick={() => buscarProdutos(pagination.page - 1)}
-                        >
-                            Anterior
-                        </button>
-                        <span>
-                            Pagina {pagination.page + 1} de {Math.max(pagination.totalPages, 1)}
-                        </span>
-                        <button
-                            type="button"
-                            className={styles.pageButton}
-                            disabled={!pagination.hasNext}
-                            onClick={() => buscarProdutos(pagination.page + 1)}
-                        >
-                            Proxima
-                        </button>
-                    </div>
+                        <div className={styles.filterGrid}>
+                            <select
+                                className={styles.searchInput}
+                                value={filtros.categoria}
+                                onChange={(e) => setFiltros((prev) => ({ ...prev, categoria: e.target.value }))}
+                                disabled={!selectedStoreId}
+                            >
+                                <option value="">Todas as categorias</option>
+                                {categorias?.map((categoria) => (
+                                    <option key={categoria} value={categoria}>
+                                        {categoria}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <input
+                                className={styles.searchInput}
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="Preco minimo"
+                                value={filtros.precoMin}
+                                onChange={(e) => setFiltros((prev) => ({ ...prev, precoMin: e.target.value }))}
+                            />
+
+                            <input
+                                className={styles.searchInput}
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="Preco maximo"
+                                value={filtros.precoMax}
+                                onChange={(e) => setFiltros((prev) => ({ ...prev, precoMax: e.target.value }))}
+                            />
+                        </div>
+
+                        <form onSubmit={handleSubmitPesquisa} className={styles.searchForm}>
+                            <input
+                                className={styles.searchInput}
+                                type="text"
+                                placeholder="O que procura hoje? Ex: arroz"
+                                value={termoPesquisa}
+                                onChange={(e) => setTermoPesquisa(e.target.value)}
+                            />
+                            <label className={styles.stockToggle}>
+                                <input
+                                    type="checkbox"
+                                    checked={filtros.inStock}
+                                    onChange={(e) => setFiltros((prev) => ({ ...prev, inStock: e.target.checked }))}
+                                />
+                                Apenas em stock
+                            </label>
+                            <button
+                                type="submit"
+                                className={`btnPrimary ${styles.btnSearch}`}
+                                disabled={!selectedStoreId || mapaStatus.loading}
+                            >
+                                Buscar
+                            </button>
+                            <button type="button" className={styles.linkButton} onClick={limparFiltros}>
+                                Limpar
+                            </button>
+                        </form>
+
+                        {(selectedStoreDetails || selectedStore) && (
+                            <>
+                                <p className={styles.storeInfo}>
+                                    Loja ativa: <strong>{selectedStoreDetails?.name || selectedStore?.name}</strong> • {pagination.totalElements} resultados
+                                </p>
+                                {!mapaStatus.ready && mapaStatus.message && (
+                                    <p className={styles.storeInfo}>{mapaStatus.message}</p>
+                                )}
+                            </>
+                        )}
+
+                        {/* Botão de filtro — só aparece se o utilizador tiver lista guardada */}
+                        {globalListItems.length > 0 && (
+                            <div className={styles.matchListBar}>
+                                <div>
+                                    <strong>Lista de compras ({globalListItems.length} item(ns))</strong>
+                                    <p className={styles.matchListBarSub}>
+                                        {globalListItems.slice(0, 4).join(', ')}{globalListItems.length > 4 ? ` e mais ${globalListItems.length - 4}...` : ''}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    className={styles.matchListButton}
+                                    onClick={handleMatchList}
+                                    disabled={matchState.loading}
+                                >
+                                    {matchState.loading
+                                        ? 'A procurar...'
+                                        : matchState.active
+                                            ? `✓ Filtro ativo (${matchState.results.length} produtos)`
+                                            : '🔍 Filtrar pela minha Lista'}
+                                </button>
+                                {matchState.active && (
+                                    <button
+                                        type="button"
+                                        className={styles.linkButton}
+                                        onClick={() => setMatchState({ results: [], loading: false, error: '', active: false })}
+                                    >
+                                        Limpar filtro
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </section>
+
+                    {/* Resultados do match-list agrupados por corredor */}
+                    {matchState.active && (
+                        <section className={styles.matchResultsSection}>
+                            <h3 className={styles.matchResultsTitle}>
+                                Produtos encontrados para a sua lista
+                            </h3>
+
+                            {matchState.error && (
+                                <p className={styles.empty}>{matchState.error}</p>
+                            )}
+
+                            {matchState.results.length === 0 && !matchState.error && (
+                                <p className={styles.empty}>
+                                    Nenhum produto encontrado para os itens da sua lista nesta loja.
+                                </p>
+                            )}
+
+                            {matchState.results.length > 0 && (() => {
+                                // Agrupa por corredor inline para manter o componente simples
+                                const corridorMap = new Map();
+                                matchState.results.forEach((p) => {
+                                    const key = String(p?.idCorredor ?? `sem-${p?.id}`);
+                                    if (!corridorMap.has(key)) {
+                                        corridorMap.set(key, {
+                                            key,
+                                            name: p?.nomeCorredor || 'Sem corredor',
+                                            order: Number.isFinite(Number(p?.idCorredor)) ? Number(p.idCorredor) : Number.MAX_SAFE_INTEGER,
+                                            items: [],
+                                        });
+                                    }
+                                    corridorMap.get(key).items.push(p);
+                                });
+                                const groups = Array.from(corridorMap.values()).sort((a, b) => a.order - b.order);
+
+                                return groups.map((group) => (
+                                    <div key={group.key} className={styles.matchGroup}>
+                                        <p className={styles.matchGroupTitle}>{group.name}</p>
+                                        <div className={styles.grid}>
+                                            {group.items.map((prod) => {
+                                                const matchTerm = globalListItems.find(
+                                                    (t) => prod.nome?.toLowerCase().includes(t.toLowerCase())
+                                                        || prod.categoria?.toLowerCase().includes(t.toLowerCase())
+                                                );
+                                                return (
+                                                    <div key={prod.id} className={`${styles.card} ${styles.matchCard}`}>
+                                                        <div className={styles.cardHeader}>
+                                                            <h3 className={styles.productName}>{prod.nome}</h3>
+                                                            <span className={styles.priceTag}>{prod.preco} €</span>
+                                                        </div>
+                                                        <div className={styles.metaList}>
+                                                            <span>{prod.nomeCorredor} • {prod.nomePrateleira}</span>
+                                                            {prod.categoria && <span>{prod.categoria}</span>}
+                                                        </div>
+                                                        {matchTerm && (
+                                                            <span className={styles.matchBadge}>match: "{matchTerm}"</span>
+                                                        )}
+                                                        <div className={styles.cardFooter}>
+                                                            <button className={styles.locationButton} onClick={() => setMapaProduto(prod)}>
+                                                                Ver no mapa
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ));
+                            })()}
+                        </section>
+                    )}
+
+                    {catalogLoading ? (
+                        <p className={styles.empty}>A carregar catalogo...</p>
+                    ) : erro ? (
+                        <p className={styles.empty}>{erro}</p>
+                    ) : produtos.length === 0 ? (
+                        <div className={styles.empty}>
+                            <p>Nenhum produto encontrado para os filtros aplicados.</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className={styles.grid}>
+                                {produtos?.map((prod) => (
+                                    <div key={prod.id} className={styles.card}>
+                                        <div className={styles.cardHeader}>
+                                            <h3 className={styles.productName}>{prod.nome}</h3>
+                                            <span className={styles.priceTag}>{prod.preco} €</span>
+                                        </div>
+                                        <p className={styles.productDesc}>
+                                            {prod.descricao || 'Sem descricao disponivel.'}
+                                        </p>
+                                        <div className={styles.metaList}>
+                                            <span>{prod.categoria || 'Sem categoria'}</span>
+                                            <span>Stock: {prod.stock}</span>
+                                            <span>{prod.nomeCorredor} • {prod.nomePrateleira}</span>
+                                        </div>
+                                        <div className={styles.cardFooter}>
+                                            <button className={styles.locationButton} onClick={() => setMapaProduto(prod)}>
+                                                Ver no mapa
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className={styles.pagination}>
+                                <button
+                                    type="button"
+                                    className={styles.pageButton}
+                                    disabled={pagination.page === 0}
+                                    onClick={() => buscarProdutos(pagination.page - 1)}
+                                >
+                                    Anterior
+                                </button>
+                                <span>
+                                    Pagina {pagination.page + 1} de {Math.max(pagination.totalPages, 1)}
+                                </span>
+                                <button
+                                    type="button"
+                                    className={styles.pageButton}
+                                    disabled={!pagination.hasNext}
+                                    onClick={() => buscarProdutos(pagination.page + 1)}
+                                >
+                                    Proxima
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </>
             )}
 
@@ -452,6 +655,7 @@ const User = ({ user, onLogout }) => {
                 </div>
             )}
         </div>
+    </div>
     );
 };
 

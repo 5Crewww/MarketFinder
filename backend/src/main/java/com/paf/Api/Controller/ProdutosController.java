@@ -15,14 +15,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-import static org.springframework.http.ResponseEntity.*;
-
 @RestController
 @RequestMapping("/produtos")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true") // Resolve o erro de bloqueio
 @Validated
 public class ProdutosController {
 
@@ -34,7 +34,8 @@ public class ProdutosController {
         this.storeAccessService = storeAccessService;
     }
 
-    @GetMapping
+    // --- LISTAR (GET) --
+    @GetMapping("/ProdGet")
     public ResponseEntity<PagedResponse<ProdutosResponse>> getProdutos(
             @RequestParam @Positive Long storeId,
             @RequestParam(required = false) String nome,
@@ -62,19 +63,45 @@ public class ProdutosController {
         return buildSearchResponse(storeId, nome, categoria, precoMin, precoMax, inStock, page, size);
     }
 
-    @GetMapping("/categorias")
+    @GetMapping("/Categorias")
     public ResponseEntity<List<String>> getCategorias(@RequestParam @Positive Long storeId) {
-        return ok(produtoService.getCategorias(storeId));
+        return ResponseEntity.ok(produtoService.getCategorias(storeId));
     }
 
     @GetMapping("/public/categorias")
     public ResponseEntity<List<String>> getCategoriasPublic(@RequestParam @Positive Long storeId) {
-        return ok(produtoService.getCategorias(storeId));
+        return ResponseEntity.ok(produtoService.getCategorias(storeId));
     }
 
-    @PostMapping
-    public ResponseEntity<?> createProd(
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+    /**
+     * Match-List: endpoint publico que recebe uma lista de termos de texto simples
+     * e devolve os produtos da loja cujo nome ou categoria correspondam a algum dos termos.
+     *
+     * GET /produtos/loja/{storeId}/match-list?termos=arroz,leite,massa
+     */
+    @GetMapping("/loja/{storeId}/match-list")
+    public ResponseEntity<List<ProdutosResponse>> matchList(
+            @PathVariable @Positive Long storeId,
+            @RequestParam(required = false, defaultValue = "") String termos
+    ) {
+        if (termos == null || termos.isBlank()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        // Divide por virgula, limpa espacos — maximo 30 termos aceites
+        List<String> termosList = java.util.Arrays.stream(termos.split(","))
+                .map(String::trim)
+                .filter(t -> !t.isBlank())
+                .limit(30)
+                .toList();
+
+        return ResponseEntity.ok(produtoService.matchByTermList(storeId, termosList));
+    }
+
+    // --- CRIAR (POST) ---
+    @PostMapping("/ProdPost")
+    public ResponseEntity<?>    createProd(
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String sessionToken,
             @Valid @RequestBody ProdutosRequest req
     ) {
         if (req == null) {
@@ -93,46 +120,48 @@ public class ProdutosController {
             return badRequest("Informe o nome do produto ou um productId valido.");
         }
 
-        storeAccessService.requireStoreAccess(authorizationHeader, req.getStoreId());
+        storeAccessService.requireStoreAccess(sessionToken, req.getStoreId());
 
         ProdutosResponse created = produtoService.createProduto(req);
         if (created == null) {
             return badRequest("Produto invalido para a loja selecionada.");
         }
-        return status(HttpStatus.CREATED).body(created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    @DeleteMapping("/{id}")
+    // --- APAGAR (DELETE) ---
+    @DeleteMapping("/ProdDelete")
     public ResponseEntity<Void> deleteProd(
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
-            @PathVariable @Positive Long id,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String sessionToken,
+            @RequestParam(name = "id") @Positive Long id,
             @RequestParam(name = "storeId") @Positive Long storeId
     ) {
-        storeAccessService.requireStoreAccess(authorizationHeader, storeId);
+        storeAccessService.requireStoreAccess(sessionToken, storeId);
         boolean ok = produtoService.deleteProduto(id, storeId);
-        if (!ok) return notFound().build();
-        return noContent().build();
+        if (!ok) return ResponseEntity.notFound().build();
+        return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/{id}")
+    // --- ATUALIZAR (PUT) ---
+    @PutMapping("/AlterProd/{id}")
     public ResponseEntity<ProdutosResponse> updateProd(
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String sessionToken,
             @PathVariable @Positive Long id,
             @Valid @RequestBody ProdutosRequest req
     ) {
-        storeAccessService.requireStoreAccess(authorizationHeader, req.getStoreId());
+        storeAccessService.requireStoreAccess(sessionToken, req.getStoreId());
         ProdutosResponse updated = produtoService.updateProduto(id, req);
-        if (updated == null) return notFound().build();
-        return ok(updated);
+        if (updated == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(updated);
     }
 
-    @PutMapping("/batch/move")
+    @PutMapping("/MoveBatch")
     public ResponseEntity<List<ProdutosResponse>> moveBatch(
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String sessionToken,
             @Valid @RequestBody BatchMoveProductsRequest request
     ) {
-        storeAccessService.requireStoreAccess(authorizationHeader, request.getStoreId());
-        return ok(produtoService.moveProdutosEmLote(request.getStoreId(), request.getTargetShelfId(), request.getItems()));
+        storeAccessService.requireStoreAccess(sessionToken, request.getStoreId());
+        return ResponseEntity.ok(produtoService.moveProdutosEmLote(request.getStoreId(), request.getTargetShelfId(), request.getItems()));
     }
 
     private ResponseEntity<ApiErrorResponse> badRequest(String message) {
@@ -155,6 +184,28 @@ public class ProdutosController {
             int page,
             int size
     ) {
-        return ok(produtoService.search(storeId, nome, categoria, precoMin, precoMax, inStock, page, size));
+        return ResponseEntity.ok(produtoService.search(storeId, nome, categoria, precoMin, precoMax, inStock, page, size));
+    }
+
+    @PostMapping(value = "/csv", consumes = "multipart/form-data")
+    public ResponseEntity<?> importCsv(
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String sessionToken,
+            @RequestParam("storeId") @Positive Long storeId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        if (file == null || file.isEmpty()) {
+            return badRequest("O ficheiro CSV não pode estar vazio.");
+        }
+
+        storeAccessService.requireStoreAccess(sessionToken, storeId);
+
+        try {
+            List<ProdutosResponse> importados = produtoService.importProdutosCsv(storeId, file);
+            return ResponseEntity.ok(importados);
+        } catch (IllegalArgumentException e) {
+            return badRequest(e.getMessage());
+        } catch (Exception e) {
+            return badRequest("Erro ao ler o ficheiro: " + e.getMessage());
+        }
     }
 }

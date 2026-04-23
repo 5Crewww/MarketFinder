@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.List;
 
@@ -70,6 +71,20 @@ public class GlobalExceptionHandler {
         ApiErrorResponse response = new ApiErrorResponse();
         response.setMessage(exception.getMessage());
         return status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiErrorResponse> handleMaxUploadSize(MaxUploadSizeExceededException exception) {
+        ApiErrorResponse response = new ApiErrorResponse();
+        response.setMessage("Ficheiro demasiado grande. O tamanho maximo permitido e 5MB.");
+        return status(HttpStatus.PAYLOAD_TOO_LARGE).body(response);
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ApiErrorResponse> handleTooManyRequests(TooManyRequestsException exception) {
+        ApiErrorResponse response = new ApiErrorResponse();
+        response.setMessage(exception.getMessage());
+        return status(HttpStatus.TOO_MANY_REQUESTS).body(response);
     }
 
     private String toFieldMessage(FieldError error) {

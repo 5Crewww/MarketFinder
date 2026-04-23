@@ -15,13 +15,16 @@ public interface ProdutoRepository extends JpaRepository<ProductEntity, Long> {
     List<ProductEntity> findByNormalizedNomeAndCategoriaAndDescricao(String normalizedNome, String categoria, String descricao);
 
     @Modifying
-    @Query("""
-            delete from ProductEntity p
-            where not exists (
-                select 1
-                from InventoryEntity i
-                where i.product = p
-            )
-            """)
+    @Query(
+            value = """
+                    delete from produtos
+                    where not exists (
+                        select 1
+                        from inventory
+                        where inventory.product_id = produtos.id_prod
+                    )
+                    """,
+            nativeQuery = true
+    )
     int deleteOrphanProducts();
 }

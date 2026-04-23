@@ -14,6 +14,7 @@ public class ProdutosResponse {
     private Long productId;
     private String nome;
     private String descricao;
+    private String marca;
     private String categoria;
     private BigDecimal preco;
     private Integer stock;

@@ -10,6 +10,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ import java.util.List;
 )
 @Getter
 @Setter
+@NoArgsConstructor
 public class ProductEntity {
 
     @Id
@@ -40,6 +42,9 @@ public class ProductEntity {
 
     @Column(name = "descricao")
     private String descricao;
+
+    @Column(name = "marca", length = 255)
+    private String marca;
 
     @Column(name = "categoria")
     private String categoria;

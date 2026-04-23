@@ -1,0 +1,3 @@
+ALTER TABLE stores
+    ADD COLUMN location VARCHAR(255) NULL,
+    ADD COLUMN description VARCHAR(1000) NULL;

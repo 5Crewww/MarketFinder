@@ -2,9 +2,11 @@ package com.paf.Domain.Services;
 
 import com.paf.Domain.Mappers.UserMapper;
 import com.paf.Domain.Models.UserModel;
+import com.paf.Infrastructure.Entities.PasswordResetTokenEntity;
 import com.paf.Infrastructure.Entities.StoreEntity;
 import com.paf.Infrastructure.Entities.StoreUserMembershipEntity;
 import com.paf.Infrastructure.Entities.UserEntity;
+import com.paf.Infrastructure.Repository.PasswordResetTokenRepository;
 import com.paf.Infrastructure.Repository.StoreRepository;
 import com.paf.Infrastructure.Repository.StoreUserMembershipRepository;
 import com.paf.Infrastructure.Repository.UserRepository;
@@ -17,23 +19,33 @@ import java.util.Optional;
 import java.util.List;
 import java.util.ArrayList;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Base64;
 import java.util.Locale;
 
 @Service
 public class UserService {
 
+    private static final Duration PASSWORD_RESET_TTL = Duration.ofHours(1);
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     private final UserRepository userRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final StoreRepository storeRepository;
     private final StoreUserMembershipRepository membershipRepository;
 
     @Autowired
     public UserService(
             UserRepository userRepository,
+            PasswordResetTokenRepository passwordResetTokenRepository,
             StoreRepository storeRepository,
             StoreUserMembershipRepository membershipRepository
     ) {
         this.userRepository = userRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.storeRepository = storeRepository;
         this.membershipRepository = membershipRepository;
     }
@@ -107,8 +119,62 @@ public class UserService {
 
     public boolean DeleteUser(Long id) {
         if (!userRepository.existsById(id)) return false;
+        passwordResetTokenRepository.deleteByUserId(id);
         userRepository.deleteById(id);
         return true;
+    }
+
+    @Transactional
+    public void requestPasswordReset(String email) {
+        cleanupExpiredPasswordResetTokens();
+
+        String sanitizedEmail = InputSanitizer.sanitizeEmail(email);
+        if (sanitizedEmail == null) {
+            return;
+        }
+
+        UserEntity user = userRepository.findByEmailIgnoreCase(sanitizedEmail).orElse(null);
+        if (user == null) {
+            return;
+        }
+
+        passwordResetTokenRepository.deleteByUserId(user.getId());
+
+        String rawToken = generatePasswordResetToken();
+        PasswordResetTokenEntity resetToken = new PasswordResetTokenEntity();
+        resetToken.setUser(user);
+        resetToken.setToken(hashPass(rawToken));
+        resetToken.setExpiresAt(Instant.now().plus(PASSWORD_RESET_TTL));
+        passwordResetTokenRepository.save(resetToken);
+
+        System.out.println("Email com link enviado para: " + sanitizedEmail);
+        System.out.println("Link de recuperação: /users/password-reset/confirm?token=" + rawToken);
+    }
+
+    @Transactional
+    public void resetPassword(String rawToken, String newPassword) {
+        cleanupExpiredPasswordResetTokens();
+
+        String normalizedToken = normalizePasswordResetToken(rawToken);
+        if (normalizedToken == null) {
+            throw new IllegalArgumentException("Token de recuperação inválido.");
+        }
+        if (newPassword == null || newPassword.length() < 6 || newPassword.length() > 120) {
+            throw new IllegalArgumentException("Nova senha inválida.");
+        }
+
+        PasswordResetTokenEntity resetToken = passwordResetTokenRepository.findByToken(hashPass(normalizedToken))
+                .orElseThrow(() -> new IllegalArgumentException("Token de recuperação inválido ou expirado."));
+
+        if (resetToken.getExpiresAt() == null || resetToken.getExpiresAt().isBefore(Instant.now())) {
+            passwordResetTokenRepository.delete(resetToken);
+            throw new IllegalArgumentException("Token de recuperação inválido ou expirado.");
+        }
+
+        UserEntity user = resetToken.getUser();
+        user.setSenha(hashPass(newPassword));
+        userRepository.save(user);
+        passwordResetTokenRepository.deleteByUserId(user.getId());
     }
 
     @Transactional
@@ -181,7 +247,10 @@ public class UserService {
             return;
         }
         String normalizedRole = role.toLowerCase(Locale.ROOT);
-        if (!normalizedRole.equals("admin") && !normalizedRole.equals("lojista") && !normalizedRole.equals("user")) {
+        if (!normalizedRole.equals("admin")
+                && !normalizedRole.equals("lojista")
+                && !normalizedRole.equals("user")
+                && !normalizedRole.equals("cliente")) {
             throw new IllegalArgumentException("Role inválida.");
         }
     }
@@ -273,5 +342,32 @@ public class UserService {
         }
 
         return InputSanitizer.sanitizeText(trimmedValue, 120);
+    }
+
+    private void cleanupExpiredPasswordResetTokens() {
+        passwordResetTokenRepository.deleteByExpiresAtBefore(Instant.now());
+    }
+
+    private String generatePasswordResetToken() {
+        byte[] randomBytes = new byte[32];
+        SECURE_RANDOM.nextBytes(randomBytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+    }
+
+    private String normalizePasswordResetToken(String rawToken) {
+        if (rawToken == null) {
+            return null;
+        }
+
+        String normalizedToken = rawToken.trim();
+        if (normalizedToken.isBlank()) {
+            return null;
+        }
+
+        if (normalizedToken.length() > 255) {
+            throw new IllegalArgumentException("Token de recuperação inválido.");
+        }
+
+        return normalizedToken;
     }
 }

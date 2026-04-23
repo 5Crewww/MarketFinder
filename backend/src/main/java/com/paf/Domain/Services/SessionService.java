@@ -10,12 +10,15 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
 public class SessionService {
 
-    private static final Duration SESSION_TTL = Duration.ofHours(8);
+    private static final Duration LOJISTA_SESSION_TTL = Duration.ofHours(2);
+    private static final Duration CLIENTE_SESSION_TTL = Duration.ofDays(7);
+    private static final Duration DEFAULT_SESSION_TTL = Duration.ofHours(8);
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final UserSessionRepository userSessionRepository;
@@ -29,7 +32,7 @@ public class SessionService {
         UserSessionEntity session = new UserSessionEntity();
         session.setUser(user);
         session.setSessionToken(UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", ""));
-        session.setExpiresAt(Instant.now().plus(SESSION_TTL));
+        session.setExpiresAt(Instant.now().plus(resolveSessionTtl(user)));
         session.setActive(Boolean.TRUE);
         return userSessionRepository.save(session);
     }
@@ -37,12 +40,15 @@ public class SessionService {
     public UserSessionEntity requireActiveSession(String sessionTokenOrAuthorizationHeader) {
         String sessionToken = normalizeSessionToken(sessionTokenOrAuthorizationHeader);
         if (sessionToken == null || sessionToken.isBlank()) {
-            throw new SecurityException("Sessão inválida ou expirada.");
+            throw new SecurityException("Sessao invalida. Por favor faca login novamente.");
         }
 
         UserSessionEntity session = userSessionRepository.findBySessionTokenAndActiveTrue(sessionToken).orElse(null);
-        if (session == null || session.getExpiresAt().isBefore(Instant.now())) {
-            throw new SecurityException("Sessão inválida ou expirada.");
+        if (session == null) {
+            throw new SecurityException("Sessao invalida. Por favor faca login novamente.");
+        }
+        if (session.getExpiresAt().isBefore(Instant.now())) {
+            throw new SecurityException("Sessao expirada. Por favor faca login novamente.");
         }
 
         return session;
@@ -85,5 +91,20 @@ public class SessionService {
         }
 
         return normalizedValue;
+    }
+
+    private Duration resolveSessionTtl(UserEntity user) {
+        if (user == null || user.getRole() == null) {
+            return DEFAULT_SESSION_TTL;
+        }
+
+        String normalizedRole = user.getRole().trim().toLowerCase(Locale.ROOT);
+        if ("lojista".equals(normalizedRole)) {
+            return LOJISTA_SESSION_TTL;
+        }
+        if ("cliente".equals(normalizedRole) || "user".equals(normalizedRole)) {
+            return CLIENTE_SESSION_TTL;
+        }
+        return DEFAULT_SESSION_TTL;
     }
 }

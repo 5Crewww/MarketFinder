@@ -2,14 +2,19 @@ package com.paf.Api.Controller;
 
 import com.paf.Api.Dto.ApiErrorResponse;
 import com.paf.Api.Dto.LoginRequest;
+import com.paf.Api.Dto.PasswordResetConfirmRequest;
+import com.paf.Api.Dto.PasswordResetRequest;
 import com.paf.Api.Dto.UserRequest;
 import com.paf.Api.Dto.UserResponse;
+import com.paf.Config.TooManyRequestsException;
 import com.paf.Domain.Mappers.UserMapper;
 import com.paf.Domain.Models.UserModel;
+import com.paf.Domain.Services.LoginRateLimiter;
 import com.paf.Domain.Services.SessionService;
 import com.paf.Domain.Services.StoreAccessService;
 import com.paf.Domain.Services.UserService;
 import com.paf.Infrastructure.Entities.UserSessionEntity;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -25,25 +30,48 @@ public class UserController {
     private final UserService userService;
     private final SessionService sessionService;
     private final StoreAccessService storeAccessService;
+    private final LoginRateLimiter loginRateLimiter;
 
     @Autowired
-    public UserController(UserService userService, SessionService sessionService, StoreAccessService storeAccessService) {
+    public UserController(
+            UserService userService,
+            SessionService sessionService,
+            StoreAccessService storeAccessService,
+            LoginRateLimiter loginRateLimiter
+    ) {
         this.userService = userService;
         this.sessionService = sessionService;
         this.storeAccessService = storeAccessService;
+        this.loginRateLimiter = loginRateLimiter;
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        UserModel user = userService.getByLoginIdentifier(request.getNome());
+        String identifier = request.getNome();
+
+        // 1. Verificar bloqueio antes de qualquer processamento
+        if (loginRateLimiter.isBlocked(identifier)) {
+            long seconds = loginRateLimiter.secondsUntilUnblocked(identifier);
+            long minutes = (seconds / 60) + 1;
+            throw new TooManyRequestsException(
+                    "Demasiadas tentativas falhadas. Tente novamente em " + minutes + " minuto(s)."
+            );
+        }
+
+        UserModel user = userService.getByLoginIdentifier(identifier);
 
         if (user == null) {
-            return unauthorized("Utilizador ou email não encontrado.");
+            loginRateLimiter.recordFailure(identifier);
+            return unauthorized("Utilizador ou email nao encontrado.");
         }
 
         if (!userService.matchesPassword(request.getSenha(), user.getSenha())) {
+            loginRateLimiter.recordFailure(identifier);
             return unauthorized("Senha incorreta.");
         }
+
+        // 2. Login bem-sucedido — limpar o contador de falhas
+        loginRateLimiter.clearOnSuccess(identifier);
 
         UserSessionEntity session = sessionService.createSession(userService.requireUserEntity(user.getIdUser()));
         user.setSessionToken(session.getSessionToken());
@@ -125,6 +153,18 @@ public class UserController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader) {
         sessionService.invalidate(authorizationHeader);
+        return noContent().build();
+    }
+
+    @PostMapping("/password-reset/request")
+    public ResponseEntity<Void> requestPasswordReset(@Valid @RequestBody PasswordResetRequest request) {
+        userService.requestPasswordReset(request.getEmail());
+        return noContent().build();
+    }
+
+    @PostMapping("/password-reset/confirm")
+    public ResponseEntity<Void> confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmRequest request) {
+        userService.resetPassword(request.getToken(), request.getNovaSenha());
         return noContent().build();
     }
 

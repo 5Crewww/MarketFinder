@@ -15,7 +15,10 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.Instant;
 
@@ -31,8 +34,11 @@ import java.time.Instant;
                 @Index(name = "idx_inventory_price", columnList = "price_cents")
         }
 )
+@SQLDelete(sql = "UPDATE inventory SET is_deleted = true WHERE id_inventory=? AND version=?")
+@SQLRestriction("is_deleted = false")
 @Getter
 @Setter
+@NoArgsConstructor
 public class InventoryEntity {
 
     @Id
@@ -61,6 +67,9 @@ public class InventoryEntity {
     @Version
     @Column(name = "version")
     private Long version;
+
+    @Column(name = "is_deleted", nullable = false)
+    private boolean deleted = false;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;

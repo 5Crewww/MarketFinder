@@ -1,0 +1,262 @@
+.searchSection {
+  margin-bottom: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.activeStoreCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #eff6ff 0%, #ecfeff 100%);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+}
+
+.activeStoreLabel {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #2563eb;
+}
+
+.activeStoreMeta {
+  color: #0f766e;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.searchForm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.searchInput {
+  padding: 15px 25px;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 50px;
+  border: 1px solid var(--card-border);
+  font-size: 1rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.stockToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.stockToggle input {
+  margin: 0;
+  width: auto;
+}
+
+.linkButton {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 25px;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--card-border);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.productName {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--text-main);
+}
+
+.productDesc {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  flex-grow: 1;
+}
+
+.metaList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.priceTag {
+  background: #ecfdf5;
+  color: var(--success);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.cardFooter {
+  margin-top: auto;
+}
+
+.locationButton {
+  width: 100%;
+  padding: 10px;
+  background: #e0f2fe;
+  color: var(--primary);
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.locationButton:hover {
+  background: #bae6fd;
+}
+
+.empty {
+  text-align: center;
+  color: var(--text-secondary);
+  margin-top: 20px;
+}
+
+.pagination {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+.pageButton {
+  border: 1px solid var(--card-border);
+  background: white;
+  color: var(--text-main);
+  padding: 10px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.pageButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.skeletonCard {
+  min-height: 220px;
+  opacity: 0.72;
+}
+
+.skeletonBar,
+.skeletonAction {
+  background: #e2e8f0;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.skeletonBar {
+  height: 14px;
+  border-radius: 999px;
+}
+
+.skeletonTitle {
+  width: 68%;
+  height: 20px;
+  margin-bottom: 16px;
+}
+
+.skeletonText {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.skeletonTextShort {
+  width: 86%;
+  margin-bottom: 24px;
+}
+
+.skeletonAction {
+  width: 54%;
+  height: 36px;
+  border-radius: 12px;
+  background: #dbeafe;
+  margin-top: auto;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .activeStoreCard {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .searchForm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pagination {
+    flex-direction: column;
+  }
+}

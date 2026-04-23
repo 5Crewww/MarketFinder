@@ -23,6 +23,9 @@ public class ProdutosRequest {
     @Size(max = 1000, message = "Descrição demasiado longa.")
     private String descricao;
 
+    @Size(max = 120, message = "Marca demasiado longa.")
+    private String marca;
+
     @Size(max = 120, message = "Categoria demasiado longa.")
     private String categoria;
 

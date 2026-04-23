@@ -36,3 +36,14 @@
   background: none; border: none; color: var(--primary); 
   cursor: pointer; text-decoration: underline; font-weight: 600;
 }
+.sessionWarning {
+  color: #92400e;
+  background: #fffbeb;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  border: 1px solid #fcd34d;
+  font-size: 0.88rem;
+  text-align: left;
+  line-height: 1.5;
+}

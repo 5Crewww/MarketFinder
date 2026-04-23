@@ -12,21 +12,34 @@ import com.paf.Infrastructure.Repository.InventoryRepository;
 import com.paf.Infrastructure.Repository.PrateleiraRepository;
 import com.paf.Infrastructure.Repository.ProdutoRepository;
 import com.paf.Util.InputSanitizer;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,11 +48,13 @@ import static org.apache.tomcat.util.http.RequestUtil.normalize;
 @Service
 public class ProdutoService {
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     private final ProdutoRepository produtoRepository;
     private final PrateleiraRepository prateleiraRepository;
     private final InventoryRepository inventoryRepository;
 
-    @Autowired
     public ProdutoService(
             ProdutoRepository produtoRepository,
             PrateleiraRepository prateleiraRepository,
@@ -101,6 +116,114 @@ public class ProdutoService {
         return inventoryRepository.findDistinctCategoriesByStoreId(storeId);
     }
 
+    /**
+     * Match-List: encontra produtos cujo nome OU categoria contenha algum dos termos fornecidos.
+     *
+     * Tolerancia a erros de escrita (Case-Insensitive estrito e Stemming dinamico):
+     *   - Stemming: se a palavra tiver < 4 letras ("sal", "pão"), usa a palavra inteira.
+     *     Se tiver 4 ou mais ("esparguete"), corta para as primeiras 4 letras ("espa")
+     *     para perdoar erros no sufixo e usa ILIKE dinâmico (cb.lower + cb.like).
+     *
+     * @param storeId  loja onde pesquisar
+     * @param termos   lista de strings (texto bruto do textarea, uma por linha)
+     * @return lista de ProdutosResponse agrupavel por corredor no frontend
+     */
+    public List<ProdutosResponse> matchByTermList(Long storeId, List<String> termos) {
+        requirePositiveId(storeId, "A loja do produto e obrigatoria.");
+
+        List<String> termosLimpos = termos == null ? List.of() : termos.stream()
+                .filter(t -> t != null && !t.isBlank())
+                .map(t -> t.trim().toLowerCase(Locale.ROOT))
+                .distinct()
+                .limit(30)
+                .toList();
+
+        if (termosLimpos.isEmpty()) {
+            return List.of();
+        }
+
+        // --- Criteria API: construcao dinamica do ILIKE (OR) ---
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<InventoryEntity> cq = cb.createQuery(InventoryEntity.class);
+        Root<InventoryEntity> inv = cq.from(InventoryEntity.class);
+
+        // Join normal para usar na clausula WHERE (sem misturar com fetches)
+        Join<Object, Object> product = inv.join("product", JoinType.INNER);
+
+        // Filtro da Loja
+        Predicate storeFilter = cb.equal(inv.get("store").get("id"), storeId);
+
+        // Filtros dinamicos OR
+        List<Predicate> termPredicates = new ArrayList<>();
+        for (String termo : termosLimpos) {
+            String stem = termo.length() < 4 ? termo : termo.substring(0, 4);
+            String pattern = "%" + stem + "%";
+            
+            // Estritamente Case-Insensitive (ILIKE equivalente)
+            Predicate nomeLike      = cb.like(cb.lower(product.get("nome")),      pattern);
+            Predicate categoriaLike = cb.like(cb.lower(product.get("categoria")), pattern);
+            termPredicates.add(cb.or(nomeLike, categoriaLike));
+        }
+
+        // Condicao final: Loja E (Termo1 OU Termo2 OU ...)
+        cq.where(cb.and(storeFilter, cb.or(termPredicates.toArray(new Predicate[0]))));
+        cq.distinct(true);
+
+        // --- EntityGraph: resolve o N+1 sem corromper a arvore do CriteriaBuilder ---
+        jakarta.persistence.EntityGraph<InventoryEntity> graph = entityManager.createEntityGraph(InventoryEntity.class);
+        graph.addAttributeNodes("product", "store");
+        graph.addSubgraph("shelf").addAttributeNodes("corredor");
+
+        jakarta.persistence.TypedQuery<InventoryEntity> query = entityManager.createQuery(cq);
+        query.setHint("jakarta.persistence.loadgraph", graph);
+
+        List<InventoryEntity> inventarios = query.getResultList();
+
+        return inventarios.stream()
+                .map(this::buildResponse)
+                .toList();
+    }
+
+    @Transactional
+    public List<ProdutosResponse> importProdutosCsv(Long storeId, MultipartFile file) {
+        requirePositiveId(storeId, "A loja do produto e obrigatoria.");
+        validateCsvFile(file);
+
+        List<ProdutosResponse> importedProducts = new ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            int lineNumber = 0;
+            boolean headerProcessed = false;
+
+            while ((line = reader.readLine()) != null) {
+                lineNumber++;
+                line = stripUtf8Bom(line);
+
+                if (line.isBlank()) {
+                    continue;
+                }
+
+                List<String> columns = parseCsvLine(line, lineNumber);
+                if (!headerProcessed && isCsvHeader(columns)) {
+                    headerProcessed = true;
+                    continue;
+                }
+
+                headerProcessed = true;
+                importedProducts.add(importCsvRow(storeId, columns, lineNumber));
+            }
+        } catch (IOException exception) {
+            throw new IllegalArgumentException("Nao foi possivel ler o ficheiro CSV.");
+        }
+
+        if (importedProducts.isEmpty()) {
+            throw new IllegalArgumentException("O ficheiro CSV nao contem produtos para importar.");
+        }
+
+        return importedProducts;
+    }
+
     @Transactional
     public ProdutosResponse createProduto(ProdutosRequest request) {
         cleanRequest(request);
@@ -155,7 +278,7 @@ public class ProdutoService {
             inventory.setStockQty(request.getStock());
         }
 
-        InventoryEntity inventoryAtualizado = inventoryRepository.save(inventory);
+        InventoryEntity inventoryAtualizado = inventoryRepository.saveAndFlush(inventory);
 
         if (oldProductId != null && inventoryAtualizado.getProduct() != null
                 && !oldProductId.equals(inventoryAtualizado.getProduct().getId())) {
@@ -176,6 +299,7 @@ public class ProdutoService {
         }
 
         inventoryRepository.delete(inventory);
+        inventoryRepository.flush();
         cleanupOrphanProducts();
         return true;
     }
@@ -239,6 +363,7 @@ public class ProdutoService {
     private ProductEntity resolveProductForUpdate(InventoryEntity inventory, ProdutosRequest request) {
         boolean hasMetadataUpdates = request.getNome() != null
                 || request.getDescricao() != null
+                || request.getMarca() != null
                 || request.getCategoria() != null;
 
         if (request.getProductId() != null && !request.getProductId().equals(inventory.getProduct().getId())) {
@@ -268,6 +393,54 @@ public class ProdutoService {
         return inventoryRepository.countByProductId(productId) > 1;
     }
 
+    private ProdutosResponse importCsvRow(Long storeId, List<String> columns, int lineNumber) {
+        if (columns.size() != 6) {
+            throw new IllegalArgumentException("Linha " + lineNumber + ": formato CSV inválido. Esperadas 6 colunas.");
+        }
+
+        String nome = sanitizeRequiredCsvField(columns.get(0), 160, "Nome", lineNumber);
+        String descricao = sanitizeOptionalCsvField(columns.get(1), 1000);
+        String categoria = sanitizeOptionalCsvField(columns.get(2), 120);
+        String marca = sanitizeOptionalCsvField(columns.get(3), 120);
+        BigDecimal preco = parseCsvPrice(columns.get(4), lineNumber);
+        Long shelfId = parseCsvShelfId(columns.get(5), lineNumber);
+
+        PrateleiraEntity shelf = requireShelf(shelfId, storeId);
+        StoreEntity store = requireStoreBinding(shelf, storeId);
+        String normalizedNome = normalize(nome);
+
+        List<InventoryEntity> existingInventories = inventoryRepository.findActiveByStoreIdAndProductMetadata(
+                storeId,
+                normalizedNome,
+                categoria,
+                descricao,
+                marca
+        );
+
+        InventoryEntity inventory = existingInventories.isEmpty() ? null : existingInventories.get(0);
+        if (inventory != null) {
+            inventory.setShelf(shelf);
+            inventory.setPriceCents(priceToCentsRequired(preco));
+            return buildResponse(inventoryRepository.save(inventory));
+        }
+
+        ProductEntity product = new ProductEntity();
+        product.setNome(nome);
+        product.setNormalizedNome(normalizedNome);
+        product.setDescricao(descricao);
+        product.setCategoria(categoria);
+        product.setMarca(marca);
+        ProductEntity savedProduct = produtoRepository.save(product);
+
+        InventoryEntity newInventory = new InventoryEntity();
+        newInventory.setStore(store);
+        newInventory.setProduct(savedProduct);
+        newInventory.setShelf(shelf);
+        newInventory.setPriceCents(priceToCentsRequired(preco));
+        newInventory.setStockQty(0);
+        return buildResponse(inventoryRepository.save(newInventory));
+    }
+
     private ProductEntity createProductFromRequest(ProdutosRequest request) {
         ProductEntity product;
 
@@ -283,6 +456,7 @@ public class ProdutoService {
             product.setNome(request.getNome().trim());
             product.setNormalizedNome(normalize(request.getNome().trim()));
             product.setDescricao(request.getDescricao());
+            product.setMarca(InputSanitizer.sanitizeText(request.getMarca(), 120));
             product.setCategoria(request.getCategoria());
         }
 
@@ -295,6 +469,7 @@ public class ProdutoService {
         clone.setNome(source.getNome());
         clone.setNormalizedNome(source.getNormalizedNome());
         clone.setDescricao(source.getDescricao());
+        clone.setMarca(source.getMarca());
         clone.setCategoria(source.getCategoria());
         return clone;
     }
@@ -311,6 +486,10 @@ public class ProdutoService {
 
         if (request.getDescricao() != null) {
             product.setDescricao(request.getDescricao());
+        }
+
+        if (request.getMarca() != null) {
+            product.setMarca(InputSanitizer.sanitizeText(request.getMarca(), 120));
         }
 
         if (request.getCategoria() != null) {
@@ -332,6 +511,7 @@ public class ProdutoService {
         response.setProductId(inventory.getProduct().getId());
         response.setNome(inventory.getProduct().getNome());
         response.setDescricao(inventory.getProduct().getDescricao());
+        response.setMarca(inventory.getProduct().getMarca());
         response.setCategoria(inventory.getProduct().getCategoria());
         response.setPreco(centsToPrice(inventory.getPriceCents()));
         response.setStock(inventory.getStockQty());
@@ -444,6 +624,7 @@ public class ProdutoService {
 
         request.setNome(InputSanitizer.sanitizeText(request.getNome(), 160));
         request.setDescricao(InputSanitizer.sanitizeText(request.getDescricao(), 1000));
+        request.setMarca(InputSanitizer.sanitizeText(request.getMarca(), 120));
         request.setCategoria(InputSanitizer.sanitizeText(request.getCategoria(), 120));
 
         if (request.getPreco() != null && request.getPreco().compareTo(BigDecimal.ZERO) < 0) {
@@ -481,5 +662,115 @@ public class ProdutoService {
             return BigDecimal.ZERO;
         }
         return BigDecimal.valueOf(cents, 2);
+    }
+
+    private void validateCsvFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("O ficheiro CSV é obrigatório.");
+        }
+    }
+
+    private String stripUtf8Bom(String value) {
+        if (value == null || value.isEmpty()) {
+            return value;
+        }
+        return value.charAt(0) == '\uFEFF' ? value.substring(1) : value;
+    }
+
+    private boolean isCsvHeader(List<String> columns) {
+        if (columns.size() != 6) {
+            return false;
+        }
+
+        return "nome".equalsIgnoreCase(stripCsvCell(columns.get(0)))
+                && "descricao".equalsIgnoreCase(stripCsvCell(columns.get(1)))
+                && "categoria".equalsIgnoreCase(stripCsvCell(columns.get(2)))
+                && "marca".equalsIgnoreCase(stripCsvCell(columns.get(3)))
+                && "preco".equalsIgnoreCase(stripCsvCell(columns.get(4)))
+                && "idprateleira".equalsIgnoreCase(stripCsvCell(columns.get(5)).replace("_", ""));
+    }
+
+    private List<String> parseCsvLine(String line, int lineNumber) {
+        List<String> columns = new ArrayList<>();
+        StringBuilder currentValue = new StringBuilder();
+        boolean inQuotes = false;
+
+        for (int index = 0; index < line.length(); index++) {
+            char currentChar = line.charAt(index);
+
+            if (currentChar == '"') {
+                if (inQuotes && index + 1 < line.length() && line.charAt(index + 1) == '"') {
+                    currentValue.append('"');
+                    index++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+                continue;
+            }
+
+            if (currentChar == ',' && !inQuotes) {
+                columns.add(currentValue.toString());
+                currentValue.setLength(0);
+                continue;
+            }
+
+            currentValue.append(currentChar);
+        }
+
+        if (inQuotes) {
+            throw new IllegalArgumentException("Linha " + lineNumber + ": aspas CSV não terminadas.");
+        }
+
+        columns.add(currentValue.toString());
+        return columns;
+    }
+
+    private String sanitizeRequiredCsvField(String value, int maxLength, String fieldName, int lineNumber) {
+        String sanitized = sanitizeOptionalCsvField(value, maxLength);
+        if (sanitized == null) {
+            throw new IllegalArgumentException("Linha " + lineNumber + ": campo " + fieldName + " é obrigatório.");
+        }
+        return sanitized;
+    }
+
+    private String sanitizeOptionalCsvField(String value, int maxLength) {
+        return InputSanitizer.sanitizeText(stripCsvCell(value), maxLength);
+    }
+
+    private String stripCsvCell(String value) {
+        if (value == null) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private BigDecimal parseCsvPrice(String value, int lineNumber) {
+        String normalizedValue = stripCsvCell(value);
+        if (normalizedValue == null || normalizedValue.isBlank()) {
+            throw new IllegalArgumentException("Linha " + lineNumber + ": Preco é obrigatório.");
+        }
+
+        try {
+            return new BigDecimal(normalizedValue.replace(',', '.'));
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("Linha " + lineNumber + ": Preco inválido.");
+        }
+    }
+
+    private Long parseCsvShelfId(String value, int lineNumber) {
+        String normalizedValue = stripCsvCell(value);
+        if (normalizedValue == null || normalizedValue.isBlank()) {
+            throw new IllegalArgumentException("Linha " + lineNumber + ": IdPrateleira é obrigatório.");
+        }
+
+        try {
+            Long shelfId = Long.parseLong(normalizedValue);
+            if (shelfId <= 0) {
+                throw new IllegalArgumentException("Linha " + lineNumber + ": IdPrateleira inválido.");
+            }
+            return shelfId;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("Linha " + lineNumber + ": IdPrateleira inválido.");
+        }
     }
 }
